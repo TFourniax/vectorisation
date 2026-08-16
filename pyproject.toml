@@ -13,6 +13,7 @@ authors = [{name = "TFourniax"}]
 
 [project.optional-dependencies]
 dev = ["pytest>=8"]
+bench = ["scikit-learn>=1.4", "scikit-image>=0.22"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
