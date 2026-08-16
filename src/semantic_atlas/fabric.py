@@ -212,10 +212,13 @@ class SemanticFabric:
                 transport_conf = 1.0
                 chart_ids: tuple[int, ...] = ()
             else:
-                moved = self.transitions.transport(q, route.path)
+                moved = self.transitions.transport_best(q, query_space, route.target_space)
+                if moved is None:
+                    continue
                 target_query = moved.vector
-                transport_conf = min(route.transition_confidence, moved.confidence)
+                transport_conf = moved.confidence
                 chart_ids = moved.chart_ids
+                route = SpaceRoute(route.target_space, moved.path, route.coverage, moved.confidence, False)
             if transport_conf <= 0.0:
                 continue
             hits = self.indexes[route.target_space].search(target_query, policy=local_policy)
@@ -252,12 +255,12 @@ class SemanticFabric:
                 path = (target_space,)
                 confidence = 1.0
             else:
-                path = self.transitions.route(source_space, target_space, max_hops=max_hops)
-                if not path:
+                moved = self.transitions.transport_best(vector, source_space, target_space, max_hops=max_hops)
+                if moved is None:
                     continue
-                moved = self.transitions.transport(vector, path)
+                path = moved.path
                 mapped = moved.vector
-                confidence = min(self.transitions.path_confidence(path), moved.confidence)
+                confidence = moved.confidence
             if confidence < min_transport_confidence:
                 continue
             vectors.append(normalize(mapped.reshape(1, -1))[0])
