@@ -86,6 +86,12 @@ New in v0.2:
 
 The exact-rotation virtual-materialization result is intentionally an easy synthetic case. It proves plumbing, not real-model equivalence. See [`docs/BENCHMARKS_V2.md`](docs/BENCHMARKS_V2.md).
 
+### First real-data check
+
+A second benchmark now uses the real `sklearn.datasets.load_digits` observations, representing each image as either 64-D raw pixels or a 324-D HOG descriptor. With 1,400 indexed images and 397 held-out queries, the local atlas improves same-digit precision@10 over one global transition from **0.4897 -> 0.7353** at 20% anchor coverage and from **0.4741 -> 0.7776** at 40%. Exact HOG-neighbor imitation remains much lower (**0.1685** and **0.2161** respectively), which is an important warning: downstream relevance and exact target-ranking fidelity must both be measured.
+
+This is real data and two real feature representations, but **not** yet a neural embedding-model benchmark. Run it with `pip install -e '.[bench]'` then `python benchmarks/digits_coordinate_benchmark.py`.
+
 ## Minimal cross-model example
 
 ```python
@@ -136,6 +142,13 @@ pip install -e '.[dev]'
 pytest
 python benchmarks/hubness_benchmark.py
 python benchmarks/coordinate_fabric_benchmark.py
+```
+
+For the included real-data representation test:
+
+```bash
+pip install -e '.[bench]'
+python benchmarks/digits_coordinate_benchmark.py
 ```
 
 For real paired embeddings:
