@@ -1,77 +1,166 @@
 # Semantic Manifold Atlas
 
-**Research prototype for a topology-aware vector data engine.**
+**A research engine for knowledge that can outlive its embedding model.**
 
-Today's vector databases are very good at answering *"which stored vectors are nearest to this vector?"* But real knowledge is not a flat cloud of independent points.
+Vector databases are excellent at answering *"which stored vectors are nearest to this vector?"* They are much less explicit about a deeper fact: a vector is not the object or its meaning. It is a coordinate produced by one representation model.
 
-Semantic Manifold Atlas (SMA) explores a different abstraction: **objects live in overlapping local semantic charts connected by a topology**. A record can carry a primary embedding, multiple fine-grained facet vectors, provenance and confidence. The engine exposes both retrieval and navigational operations over the resulting semantic structure.
+Semantic Manifold Atlas (SMA) explores two connected abstractions:
 
-> The goal is not to replace SQL with a 3-D scatter plot. SQL remains the right control plane for transactions, constraints and metadata. Nor do we compress arbitrary embeddings to XYZ. The 3-D coordinates in this prototype are local inspection views; the full vector remains available for retrieval.
+1. **Semantic Manifold Atlas** — a corpus is represented by overlapping local semantic charts, reciprocal topology, local-density diagnostics and navigational primitives beyond top-k similarity.
+2. **Semantic Coordinate Fabric (SCF)** — different embedding models are treated as different coordinate systems over stable logical objects, connected by audited local transition functions.
 
-## Why this may matter
+The long-term goal is not another HNSW implementation. It is a model-independent semantic layer that can sit above Qdrant, DiskANN, pgvector or another ANN engine.
 
-A single global metric loses information in several ways:
+> SQL still belongs in the control plane for transactions, constraints and metadata. And SMA does **not** compress arbitrary knowledge to XYZ: local 3-D coordinates are inspection views only. Full-dimensional representations remain the retrieval coordinates.
 
-- high-dimensional nearest-neighbor spaces can exhibit **hubness**;
-- local intrinsic dimensionality and concept directions can differ across a corpus;
-- one pooled vector can hide fine-grained term/facet matches;
-- hierarchy, graph structure, time and provenance are not captured by cosine distance;
-- top-k similarity cannot naturally answer bridge, boundary, drift or global-shape questions.
+## Why the coordinate layer matters
 
-SMA combines several research-backed ideas into one falsifiable storage/retrieval hypothesis:
+Today an embedding upgrade commonly means generating a new vector for every existing object. Infrastructure can hide the downtime, but the stored corpus remains coupled to the encoder that produced it.
 
-1. overlapping **local charts** rather than one forced global projection;
-2. **mutual-kNN topology** and hubness diagnostics;
-3. **CSLS-inspired local calibration** alongside ordinary cosine relevance;
-4. optional **multi-vector late interaction** for facets/tokens;
-5. **multi-scale routing**, compatible with Matryoshka embeddings;
-6. a chart-overlap **nerve graph** inspired by topological data analysis;
-7. explicit **provenance/confidence** in ranking and explanations.
+SCF tests a different model:
 
-See [`docs/RESEARCH.md`](docs/RESEARCH.md) for the research basis, hypotheses and falsification plan, and [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the design.
+```text
+stable logical object
+       |
+       +-- observation in embedding-space A
+       +-- observation in embedding-space B
+       +-- observation in embedding-space C
 
-## Current synthetic stress test
+A <==== audited local transitions ====> B <====> C
+```
 
-The included hubness benchmark creates an anisotropic 64-D corpus and injects six near-centroid "black-hole" vectors. On the fixed seed used by the benchmark:
+With enough paired anchors, the engine learns local transitions between spaces, validates them on held-out anchors, routes only through sufficiently reliable paths and can search a complete legacy index from a new-model query while the new index is still partial.
 
-- exact cosine: precision@10 **0.6300**, injected hubs/query **3.3687**;
-- current SMA prototype: precision@10 **0.8519**, injected hubs/query **0.0000**.
+It can also build a **SemanticCell**: a confidence-weighted target coordinate plus dispersion from several direct or transported observations. That makes disagreement between models explicit instead of silently averaging it away.
 
-This is a **synthetic falsification test, not evidence of production superiority**. The next milestone is real-corpus benchmarking against strong baselines.
+See [`docs/SEMANTIC_FABRIC.md`](docs/SEMANTIC_FABRIC.md) and the draft [`Semantic Coordinate Protocol`](docs/SEMANTIC_COORDINATE_PROTOCOL.md).
 
-## Run it
+## Phase 0: topology-aware retrieval
+
+The original SMA kernel remains intact:
+
+- overlapping local charts with local PCA inspection coordinates;
+- local intrinsic-dimension estimates;
+- mutual-kNN topology;
+- hubness and density diagnostics;
+- CSLS-inspired robust scoring;
+- optional multi-vector facet late interaction;
+- multi-scale/coarse routing;
+- provenance and confidence in result evidence;
+- `bridge(A, B)` for topological paths;
+- `boundary(A, B)` for transition regions;
+- a chart-overlap nerve graph.
+
+The deterministic hubness stress test currently gives, on its fixed synthetic seed:
+
+- exact cosine precision@10: **0.6300**, injected hubs/query: **3.3687**;
+- SMA precision@10: **0.8519**, injected hubs/query: **0.0000**.
+
+This is a mechanism test, not a production superiority claim.
+
+## Phase 1: Semantic Coordinate Fabric
+
+New in v0.2:
+
+- rectangular scaled-Procrustes maps for different source/target dimensions;
+- **piecewise local transition atlases** instead of one forced global adapter;
+- deterministic held-out transition diagnostics;
+- multi-hop transition graph with confidence-aware routing;
+- **cycle consistency** audits for corrupted/incompatible routes;
+- concurrent cross-space search;
+- coverage-corrected rank fusion during partial migrations;
+- **SemanticCell** barycenters with dispersion and provenance;
+- virtual target-space materialization before full re-embedding;
+- cross-model `fault_lines()` for representation-sensitive objects;
+- coordinate-aware semantic drift reports;
+- portable transition serialization (`semantic-coordinate-transition` v1).
+
+### Current deterministic V2 stress tests
+
+| Test | Simple baseline | Current SCF |
+|---|---:|---:|
+| Region-dependent cross-model warp, held-out pair cosine | global Procrustes **0.7042** | local atlas **0.9414** |
+| Only 25% of target index migrated, top-10 overlap vs legacy SMA oracle | new index only **0.2080** | fabric **0.8460** |
+| Closed good/corrupted transition cycle, mean cosine | good **~1.0000** | corrupted **-0.0760** |
+| Exact-rotation toy migration with only 20% direct target vectors | direct coverage **0.20** | virtual coverage **1.00** |
+
+The exact-rotation virtual-materialization result is intentionally an easy synthetic case. It proves plumbing, not real-model equivalence. See [`docs/BENCHMARKS_V2.md`](docs/BENCHMARKS_V2.md).
+
+## Minimal cross-model example
+
+```python
+from semantic_atlas import FabricRecord, SemanticFabric, SpaceSpec
+
+fabric = SemanticFabric(chart_size=64, graph_k=10)
+fabric.add_space(SpaceSpec("legacy", 1536, version="encoder-v1"))
+fabric.add_space(SpaceSpec("next", 1024, version="encoder-v2"))
+
+fabric.add(FabricRecord("doc-1", {"legacy": legacy_vector_1}))
+fabric.add(FabricRecord("doc-2", {"legacy": legacy_vector_2, "next": next_vector_2}))
+# ...
+
+fabric.fit_bidirectional(
+    "legacy",
+    "next",
+    anchor_ids=paired_anchor_ids,
+    chart_size=32,
+)
+fabric.build()
+
+# A query produced only by the new encoder can already use both spaces.
+hits = fabric.search(next_query, query_space="next", top_k=10)
+
+# Build a confidence-gated temporary target-space index while migration continues.
+virtual_next = fabric.materialize_virtual_space(
+    "next",
+    min_cell_confidence=0.85,
+    min_transport_confidence=0.80,
+)
+```
+
+A transition artifact can be saved independently of a database:
+
+```python
+from semantic_atlas import save_transition, load_transition
+
+save_transition(fabric.transitions.transitions[("next", "legacy")], "next-to-legacy.npz")
+transition = load_transition("next-to-legacy.npz")
+```
+
+## Run the research kernel
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate
 pip install -e '.[dev]'
 pytest
-python examples/demo.py
 python benchmarks/hubness_benchmark.py
+python benchmarks/coordinate_fabric_benchmark.py
 ```
 
-The included `FeatureHashEmbedder` is deterministic and API-free so the demo is reproducible. It is **not** a production embedding model; pass vectors from OpenAI, Voyage, Jina, BGE, Qwen, local models or any other encoder to `AtlasRecord`.
+For real paired embeddings:
 
-## Minimal API
-
-```python
-from semantic_atlas import AtlasIndex, AtlasRecord
-
-index = AtlasIndex(chart_size=64, chart_overlap=1.3, graph_k=10)
-index.add(AtlasRecord("doc-1", vector_1, metadata={"source": "paper"}))
-index.add(AtlasRecord("doc-2", vector_2, facets=token_vectors))
-index.build()
-
-hits = index.search(query_vector, facets=query_token_vectors)
-path = index.bridge("doc-1", "doc-2")
-boundary = index.boundary("doc-1", "doc-2")
-shape = index.map()
+```bash
+python benchmarks/npz_upgrade_benchmark.py pair.npz --anchor-fraction 0.10 --k 10
 ```
 
-Every search hit contains a decomposed score, chart membership and local 3-D inspection coordinates.
+The NPZ expects `old_docs`, `new_docs` and `new_queries`. It compares the local transition atlas with a global Procrustes baseline against an exact full-new-space retrieval oracle.
 
-## Status
+## Scientific posture
 
-This is **Phase 0: a research kernel**, not a production database and not yet evidence of a sector-level breakthrough. The next milestone is deliberately harder: beat strong baselines under reproducible benchmarks and survive ablation tests. The project should be killed, narrowed or redesigned if the evidence does not support its hypotheses.
+This repository contains a **falsifiable research hypothesis**, not evidence that SMA has already revolutionized vector search.
 
-See [`docs/ROADMAP.md`](docs/ROADMAP.md).
+Relevant prior work already establishes important pieces: Procrustes alignment, migration adapters, local cross-model geometric consistency, hubness mitigation and uncertainty-aware retrieval. The possible contribution is the systems combination into an audited, composable coordinate fabric with continuity, uncertainty and integrity semantics. See [`docs/PRIOR_ART.md`](docs/PRIOR_ART.md).
+
+The project should be simplified, narrowed or killed if real-model experiments show that the extra layer does not create repeatable gains in retrieval continuity, migration economics, safety or semantic diagnostics.
+
+## Research documents
+
+- [`docs/RESEARCH.md`](docs/RESEARCH.md) — Phase 0 basis and falsification plan
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — original atlas architecture
+- [`docs/SEMANTIC_FABRIC.md`](docs/SEMANTIC_FABRIC.md) — cross-model theory and mechanisms
+- [`docs/SEMANTIC_COORDINATE_PROTOCOL.md`](docs/SEMANTIC_COORDINATE_PROTOCOL.md) — portable protocol draft
+- [`docs/PRIOR_ART.md`](docs/PRIOR_ART.md) — prior-art map and non-claims
+- [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md) — new trust boundaries
+- [`docs/BENCHMARKS_V2.md`](docs/BENCHMARKS_V2.md) — real-model benchmark protocol and kill criteria
+- [`docs/ROADMAP.md`](docs/ROADMAP.md) — roadmap
