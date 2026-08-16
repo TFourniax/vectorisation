@@ -1,124 +1,183 @@
-# Roadmap: from research prototype to a durable semantic data layer
+# Roadmap: from vector retrieval to semantic change management
 
-The roadmap is evidence-gated. A phase is not complete because code exists; its hypotheses must survive the benchmark gates attached to it.
+The roadmap is evidence-gated. Code does not complete a phase; the phase completes only when its hypothesis survives the attached falsification gate.
 
-## Phase 0 — Semantic Manifold Atlas kernel — implemented
+## Phase 0 — Semantic Manifold Atlas — implemented reference kernel
 
-- runnable NumPy reference implementation;
-- overlapping semantic charts;
-- mutual-kNN topology and hubness diagnostics;
+- overlapping local semantic charts;
+- mutual-kNN topology, hubness and density diagnostics;
 - CSLS-inspired hub-robust ranking;
 - optional multi-vector facet late interaction;
 - local 3-D coordinates for inspection only;
-- chart-overlap nerve graph;
-- `bridge` and `boundary` queries;
+- `bridge`, `boundary`, chart nerve graph;
 - hybrid SQLite/vector persistence;
-- deterministic hubness falsification benchmark.
+- deterministic black-hole/hubness stress benchmark.
 
-## Phase 1 — Semantic Coordinate Fabric — implemented as research V0.2
+## Phase 1 — Semantic Coordinate Fabric — implemented research kernel
 
-- stable logical object identity independent of embedding identity;
+- logical identity independent of embedding identity;
 - explicit representation-space registry;
 - rectangular scaled-Procrustes baseline;
 - piecewise local transition atlases;
-- deterministic held-out transition diagnostics;
-- confidence-aware graph routing across representation spaces;
+- held-out global + local transition confidence;
+- support-radius/OOD confidence decay;
+- query-dependent route selection across representation spaces;
 - cycle/cocycle consistency audits;
-- partial-migration search with coverage-aware rank fusion;
+- partial-migration search with coverage-aware fusion;
 - semantic cells: center + dispersion + provenance;
-- confidence-gated virtual target-space materialization;
+- virtual target-space materialization;
 - representation `fault_lines` and coordinate-aware drift;
-- portable transition artifact format;
-- draft Semantic Coordinate Protocol and threat model.
+- portable transition artifact format v2.
 
-Mechanism tests and the first real-data representation benchmark now exist. This phase is **not** evidence of neural embedding-model superiority.
+Prior-art review materially narrowed novelty claims here: cross-model translation, local consistency, composable translation and embedding-independent vector-database IRs are already active research areas.
 
-## Phase 2 — real encoder falsification gate — next critical gate
+## Phase 2 — Semantic ABI — implemented V0.3 hypothesis
 
-Use the database-neutral NPZ harness and add reproducible corpus adapters. Test several unrelated model families, dimensions, languages and domains rather than one favorable pair.
+Make the **meaning required by the application** a stable interface above all representation implementations.
 
-Required measurements:
+Implemented:
 
-- full-target relevance: nDCG@10, Recall@k, MRR where labels exist;
-- exact target-neighborhood fidelity separately from relevance;
-- migration coverage curves: 1%, 5%, 10%, 25%, 50%, 75%;
-- anchor-count curves and anchor-domain transfer;
-- confidence calibration: declared transition confidence vs observed retrieval loss;
-- p50/p95/p99 transport and search latency;
-- transition fit cost and artifact size;
-- cost/time saved relative to full re-embedding;
-- failure under multilingual shift, long-tail concepts and domain shift.
+- coordinate-free ordinal triplet clauses;
+- critical-neighborhood clauses;
+- reciprocal-neighbor clauses;
+- hard/soft requirements and provenance/source fields;
+- separate application-semantic vs legacy-behavior contracts;
+- canonical contract digests;
+- tamper-evident hash-chained contract ledger;
+- per-object violation/risk field;
+- query-local risk interpolation;
+- `SemanticABIGate` for region-wise rollout/fallback;
+- real-data digits/HOG mechanism benchmark.
 
-Baselines:
+Critical falsification questions:
+
+- does ABI score predict downstream failures better than ordinary held-out evaluation?
+- can useful application contracts be built from a tiny fraction of a corpus?
+- are local risk estimates calibrated enough for deployment decisions?
+- do contracts transfer across dense, sparse, graph and multimodal implementations?
+- can application semantics remain stable without freezing obsolete ranking quirks?
+
+## Phase 3 — active semantic repair — implemented transparent baseline, research next
+
+Close the loop:
+
+```text
+Contract -> Audit -> Gate -> Repair -> Re-certify
+```
+
+Current baseline:
+
+- priority = semantic risk x violation centrality x diversity;
+- sparse review/re-embedding plan rather than uniform backfill;
+- real-data corruption benchmark shows strong enrichment over random selection at small budgets.
+
+Next research:
+
+- submodular facility-location selection;
+- Bayesian/active-learning uncertainty reduction;
+- expected certified-surface gain per dollar/token/GPU-second;
+- transition-anchor selection and direct re-embedding selection as one joint optimization;
+- stop conditions: repair until requested semantic SLA, not until 100% corpus backfill;
+- counterfactual repair: identify the smallest observation/transition changes needed to satisfy the contract.
+
+**Kill rule:** if active repair cannot beat random, uncertainty sampling, or simple highest-risk selection on cost-to-certified-coverage, remove the extra planner complexity.
+
+## Phase 4 — real neural encoder falsification gate — highest priority
+
+Use unrelated encoder families and several datasets; do not optimize around one favorable model pair.
+
+Required axes:
+
+- text retrieval with relevance labels;
+- multilingual retrieval;
+- image/multimodal retrieval;
+- domain shift and long-tail concepts;
+- dimension changes;
+- model-family changes;
+- partial migration coverage: 1%, 5%, 10%, 25%, 50%, 75%;
+- anchor budgets and domain-held-out anchors.
+
+Report separately:
+
+1. target-neighborhood fidelity;
+2. downstream relevance (nDCG/MRR/Recall);
+3. Semantic ABI score and hard failures;
+4. risk calibration;
+5. certified corpus/query coverage;
+6. active-repair cost-to-certification;
+7. p50/p95/p99 latency;
+8. memory/artifact size;
+9. full re-embedding cost avoided.
+
+Baselines must include:
 
 - full re-embedding;
 - legacy retrieval;
-- new-index only at partial coverage;
-- global orthogonal/scaled Procrustes;
-- low-rank affine mapping;
-- learned residual adapter when data volume makes it fair;
-- naive RRF vs coverage-aware fusion;
-- local SCF with every component ablated.
+- new-index-only under partial coverage;
+- Drift-Adapter-style global adapters;
+- local/composable translation baselines from current literature;
+- naive vs coverage-aware fusion;
+- uniform/random backfill;
+- uncertainty-only and highest-risk repair.
 
-**Kill/narrow rule:** if local transitions and the Fabric do not create repeatable relevance, continuity, safety or economic value over simpler one-hop adapters, reduce the project to the simpler mechanism rather than preserving complexity.
+## Phase 5 — mature ANN adapters, never needless reinvention
 
-## Phase 3 — mature ANN integration, not reinvention
-
-Keep SCF database-neutral and delegate candidate generation to mature engines.
-
-- Qdrant adapter with named-vector / migration experiments;
-- HNSW reference adapter;
-- DiskANN adapter for SSD-scale experiments;
-- pgvector adapter for relational deployments;
+- Qdrant adapter;
+- HNSW adapter;
+- DiskANN adapter;
+- pgvector adapter;
 - filtered-query selectivity sweeps;
-- calibrated fusion across indexes with different coverage and ANN recall;
-- direct-vs-virtual vector observability;
-- transition canaries, quarantine and rollback.
+- direct vs virtual vector observability;
+- transition and ABI canaries, quarantine and rollback;
+- query planner using ANN cost + transition risk + ABI risk + coverage.
 
-Only after these measurements should any custom storage kernel be justified.
+Only measured evidence could justify a custom low-level index.
 
-## Phase 4 — from points to semantic cells and fields
+## Phase 6 — richer semantic invariants
 
-If cross-model cells prove useful on real encoders:
+Only when ablations show points/triplets are insufficient:
 
-- covariance / anisotropic uncertainty instead of scalar dispersion;
-- distributional or sample-based cells where warranted;
-- temporal semantic cells and vector fields for concept movement;
-- persistent-homology summaries for topology changes;
-- typed relation/hyperedge overlays for events and causal hypotheses;
-- contradiction and representation-disagreement regions;
-- provenance-aware trust propagation;
-- counterfactual traversal: minimum semantic changes connecting states.
+- anisotropic/covariance semantic cells;
+- distributional uncertainty;
+- temporal semantic fields;
+- persistent topological invariants;
+- typed graph/hyperedge clauses;
+- contradictions and contested-semantic regions;
+- provenance/trust propagation;
+- causal hypotheses and counterfactual traversal.
 
-Every richer representation needs an ablation showing why a point is insufficient.
+Each richer invariant must buy measurable predictive power per unit of contract/storage complexity.
 
-## Phase 5 — open semantic coordinate protocol
+## Phase 7 — open Semantic ABI + coordinate protocol
 
-If Phase 2–4 evidence supports the abstraction, separate the protocol from the reference engine.
+If the evidence survives:
 
-- immutable model + preprocessing fingerprints;
-- signed transition manifests;
-- portable held-out diagnostics;
+- immutable model/preprocessing fingerprints;
+- signed contract and transition manifests;
+- clause/interchange schema;
+- contract semantic versioning rules;
 - transition expiry/revocation;
-- cycle-audit interchange format;
-- virtual/direct coordinate status;
-- anchor provenance and privacy metadata;
-- adapters for independent vector stores;
-- conformance suite.
+- audit evidence bundles;
+- calibrated local-risk interchange;
+- direct/virtual observation status;
+- anchor/contract provenance and privacy metadata;
+- conformance suite for vector stores and retrievers.
 
-The strategic objective would be interoperability: a logical corpus should not have to be permanently coupled to the embedding model or vector database that first encoded it.
+The strategic objective is **representation independence**: an application should declare what semantic behavior it requires, while the underlying implementation remains replaceable.
 
-## Phase 6 — agent/data substrate
+## Phase 8 — semantic substrate for agents and data systems
 
-Expose a small query language over geometry, topology, time, provenance and coordinate systems:
+Potential query language:
 
-- `NEAR(query)` — semantic retrieval;
-- `BRIDGE(a,b)` — topology path;
-- `BOUNDARY(a,b)` — transition / ambiguity region;
-- `FAULT_LINES(scope)` — representation-sensitive regions;
-- `DRIFT(scope,t1,t2)` — coordinate-aware semantic movement;
-- `WHY(result)` — score, transition path, uncertainty and provenance;
-- `MAP(scope)` — topology summary, not merely a 2-D scatter plot;
-- `MATERIALIZE(target_space)` — confidence-gated virtual coordinates during migration.
+- `NEAR(query)` — retrieval;
+- `BRIDGE(a,b)` — semantic/topological path;
+- `BOUNDARY(a,b)` — transition region;
+- `FAULT_LINES(scope)` — representation disagreement;
+- `DRIFT(scope,t1,t2)` — coordinate-aware change;
+- `CERTIFY(implementation, contract)` — semantic ABI audit;
+- `WHY_UNSAFE(query)` — violated clauses and local evidence;
+- `REPAIR(budget)` — cost-aware active repair plan;
+- `MATERIALIZE(target_space)` — virtual coordinates;
+- `MAP(scope)` — topology/contract/risk summary.
 
-The long-term target is a substrate where agents can navigate **objects, relationships, uncertainty and changing coordinate systems**, instead of treating every corpus as a static bag of nearest-neighbor vectors.
+The end-state is not “a better vector table”. It is a system where data has **identity, representations, invariants, uncertainty, provenance and controlled semantic evolution**.
