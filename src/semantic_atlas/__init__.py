@@ -1,6 +1,6 @@
 """Semantic Manifold Atlas research prototype."""
 
-from .alignment import TransitionAtlas, TransitionDiagnostics, TransitionGraph
+from .alignment import RoutedTransport, TransitionAtlas, TransitionDiagnostics, TransitionGraph
 from .core import AtlasIndex, AtlasRecord, SearchHit, SearchPolicy
 from .drift import DriftPoint, DriftReport, compare_indexes
 from .embed import FeatureHashEmbedder
@@ -13,6 +13,7 @@ __all__ = [
     "SearchHit",
     "SearchPolicy",
     "FeatureHashEmbedder",
+    "RoutedTransport",
     "TransitionAtlas",
     "TransitionDiagnostics",
     "TransitionGraph",
