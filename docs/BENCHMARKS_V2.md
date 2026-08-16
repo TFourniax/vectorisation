@@ -15,6 +15,31 @@ Synthetic tests are mechanism tests. They are useful for proving that an impleme
 
 The final row is intentionally easy for alignment: the spaces differ by an exact rotation. It tests mechanics, not realistic embedding-model equivalence.
 
+## First real-data representation test
+
+`benchmarks/digits_coordinate_benchmark.py` uses the 1,797 handwritten images shipped with `sklearn.datasets.load_digits`. This is **real observed data**, but deliberately not described as a neural embedding-model benchmark.
+
+The same logical image is represented in two genuinely different coordinate systems:
+
+- legacy: normalized raw 8x8 pixels, 64 dimensions;
+- target: HOG descriptors, 324 dimensions.
+
+A fixed split uses 1,400 documents and 397 held-out query images. Query images are never transition anchors. The benchmark measures both exact HOG-neighborhood imitation and a task-level relevance metric: whether retrieved documents have the same digit label as the query.
+
+| Anchor coverage | Global same-digit precision@10 | Local atlas same-digit precision@10 | Global HOG-neighbor overlap@10 | Local HOG-neighbor overlap@10 |
+|---:|---:|---:|---:|---:|
+| 5% | 0.4418 | 0.4889 | 0.0720 | 0.0806 |
+| 10% | 0.4970 | 0.6259 | 0.0856 | 0.1217 |
+| 20% | 0.4897 | 0.7353 | 0.0788 | 0.1685 |
+| 40% | 0.4741 | 0.7776 | 0.0811 | 0.2161 |
+| 70% | 0.4280 | 0.8526 | 0.0741 | 0.2809 |
+
+Native target HOG retrieval has same-digit precision@10 **0.8343**; native pixel retrieval has **0.9476**.
+
+This result is both encouraging and cautionary. The local atlas consistently beats one global map on the task-level relevance metric and improves as anchor coverage grows. However, exact target-neighborhood overlap remains low even at high anchor coverage. Therefore **target-ranking imitation is not enough as the only success metric, and task relevance cannot be ignored either**. Real embedding-model experiments must report both.
+
+The optional benchmark dependencies are installed with `pip install -e '.[bench]'`.
+
 ## Real paired-model benchmark harness
 
 `benchmarks/npz_upgrade_benchmark.py` accepts a database-neutral NPZ:
