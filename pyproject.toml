@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "semantic-manifold-atlas"
-version = "0.2.0"
-description = "Topology-aware retrieval and a cross-model semantic coordinate fabric"
+version = "0.3.0"
+description = "Semantic ABI, cross-model coordinate fabric, and topology-aware retrieval research engine"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = ["numpy>=1.24"]
