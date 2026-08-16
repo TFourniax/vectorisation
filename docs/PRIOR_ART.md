@@ -1,70 +1,130 @@
 # Prior art and differentiation notes
 
-This is a research map, not a novelty or patent opinion. The relevant literature is moving quickly. Claims below describe the sources reviewed for this prototype and must be revisited before any formal novelty claim.
+This is a research map, not a novelty or patent opinion. The literature is moving extremely quickly. The correct posture is to narrow claims whenever stronger prior art appears.
 
-## Vector-database model migration
+## The important correction after the first prototype
 
-Qdrant's current migration guidance supports zero-downtime blue/green migration and named vectors. Both strategies allow serving the old representation while new vectors are generated, but the migration process still re-embeds existing points in the background before the new representation becomes the complete search surface.
+The original V0.2 thesis—embedding models as interoperable coordinate systems—overlaps materially with a fast-moving research program from the University of Edinburgh and with earlier compatibility work. **SMA/SCF must not claim that cross-model translation, local alignment, composable translation, or embedding-independent vector-database representations are broadly new.**
 
-Source: Qdrant documentation, *Migrate to a New Embedding Model* and named-vector documentation.
+That discovery changed the project direction. The strongest current research hypothesis is now the **Semantic ABI** layer: a coordinate-free, versioned contract of semantic invariants used to certify, localize and route representation implementations.
 
-SCF asks a different question: can a new-model query search the complete legacy corpus **before** every legacy point has a new embedding, while a partial new index is fused safely and progressively replaces transported coordinates?
+## Integrating Vector Databases across Embedding Models — SIGMOD 2026
 
-## Drift-Adapter
+Beining Yang, Yang Cao and Yang Ren, *Integrating Vector Databases across Embedding Models*, ACM SIGMOD 2026 (Best Paper Honorable Mention).
 
-*Drift-Adapter: A Practical Approach to Near Zero-Downtime Embedding Model Upgrades in Vector Databases* (arXiv:2509.23471) explicitly attacks expensive model upgrades by learning adapters that map new queries into the legacy embedding space. It evaluates orthogonal Procrustes, low-rank affine and residual-MLP adapters and reports large recomputation savings in its experiments.
+This work directly studies integrating vector databases produced by different embedding models without assuming access to raw objects or model internals. It is rooted in local cross-model geometric consistency and evaluates real embedding models.
 
-This is close and important prior art. SCF should not claim that query-space adaptation itself is new.
+This is direct prior art against any broad claim that SCF invented cross-model vector-database interoperability.
 
-The research delta being tested here is the **fabric** around adaptation:
+## Generalizable and Composable Multi-Model Embedding Translation — ICML 2026
 
-- piecewise local rather than necessarily global transitions;
-- a directed graph of many coordinate systems rather than one upgrade pair;
-- held-out transition confidence as a routing primitive;
-- cycle/cocycle consistency across redundant routes;
-- concurrent multi-space search with coverage-aware fusion during partial migration;
-- semantic cells that preserve cross-model disagreement as uncertainty;
-- virtual materialization into a target space;
-- fault-line and coordinate-aware drift diagnostics.
+Beining Yang and Yang Cao, *Generalizable and Composable Multi-Model Embedding Translation*, ICML 2026 Spotlight.
 
-Whether that combination is novel enough to matter has to be established experimentally and through broader prior-art/patent review.
+This is particularly important prior art for the most recent SCF direction. It studies multi-model translation, out-of-distribution behavior, composed/chained translations, a geometry-aware confidence metric and localized adaptation through a hierarchical mixture-of-experts design.
 
-## Procrustes theory for model alignment
+Therefore SCF must **not** claim novelty for:
 
-*When Embedding Models Meet: Procrustes Bounds and Applications* (arXiv:2510.13406) studies conditions under which two embedding spaces can be aligned by an isometry when pairwise inner products are approximately preserved. This provides useful theory for the simple global baseline and explains why orthogonal alignment can work surprisingly well in some settings.
+- local embedding translation by itself;
+- query/model-specific translation confidence by itself;
+- chaining translations across several representation models;
+- localized experts for cross-model interoperability.
 
-SCF therefore treats global Procrustes as a baseline that local transitions must beat, not as a straw man.
+Our local-risk field and query-aware graph routing remain useful executable research mechanisms, but the scientific contribution cannot rest on those ideas alone.
 
-## Local cross-model consistency
+## Vector Linking via Cross-Model Local Isometric Consistency — ICML 2026
 
-*Vector Linking via Cross-Model Local Isometric Consistency* (arXiv:2605.31100) reports that independently trained contrastive encoders can exhibit local geometric consistency: short-range relationships can align even where long-range geometry is distorted. It uses seed anchors to link vector spaces.
+Ziying Chen, Yang Cao, He Sun, Beining Yang and Tianjian Yang, *Vector Linking via Cross-Model Local Isometric Consistency*, ICML 2026.
 
-This strongly motivates—and also constrains—the local-atlas hypothesis. SCF's local transition layer should be evaluated as one systems realization of this phenomenon, not described as discovery of the phenomenon itself.
+The work provides theoretical/empirical support for local geometric consistency between independently trained contrastive encoders and uses anchor correspondences to link vector spaces.
+
+This strongly supports local methods while constraining novelty claims around the "atlas" metaphor.
+
+## Metric Algebra: Embedding-Independence in Vector Databases — accepted SIGMOD 2027
+
+Tianjian Yang, Yang Cao, Beining Yang, Ziying Chen and Tiejun Ma, *Metric Algebra: Embedding-Independence in Vector Databases*, accepted for SIGMOD 2027.
+
+The authors describe it as an intermediate representation bringing physical/logical independence—embedding independence—to vector database systems. As of this research pass, the accepted-paper listing and author research page are public, but we did not find a public full preprint through ordinary search.
+
+This title and positioning are close enough to the broad SCF vision that we should assume significant overlap until the full paper can be reviewed.
+
+## Drift-Adapter — EMNLP 2025
+
+Harshil Vejendla, *Drift-Adapter: A Practical Approach to Near Zero-Downtime Embedding Model Upgrades in Vector Databases*, EMNLP 2025.
+
+It maps new queries into a legacy space using paired anchors and evaluates orthogonal Procrustes, low-rank affine and residual-MLP adapters. The reported experiments recover most full-reembedding retrieval quality with very small query-time overhead.
+
+This is strong prior art for zero/near-zero-downtime upgrades through query transformation.
+
+## Backward/forward compatible representation learning
+
+A substantial vision/retrieval literature predates the database-oriented work:
+
+- backward-compatible training;
+- Forward Compatible Training (CVPR 2022);
+- Bidirectional Compatible Training;
+- Learning Compatible Embeddings;
+- Neighborhood Consensus Contrastive Learning;
+- Darwinian Model Upgrades / selective compatibility;
+- compatibility-aware heterogeneous visual search.
+
+These works establish that representation compatibility is a long-standing problem, not a new problem created by this repository.
+
+## Query Drift Compensation — CoLLAs 2026
+
+*Query Drift Compensation: Enabling Compatibility in Continual Learning of Retrieval Embedding Models* studies continual updates of text retrieval encoders and projects new queries into old embedding spaces to continue using already indexed corpora.
+
+This further narrows any claim around migration-time query projection.
+
+## Ordinal embedding as a basis for coordinate-free contracts
+
+Ordinal-embedding literature studies representations from constraints such as "object A is closer to B than to C" rather than requiring absolute coordinates. Results include uniqueness/reconstruction theory and local ordinal embedding.
+
+Semantic ABI borrows this mathematical primitive as a **contract clause**, not as a claim to have invented ordinal constraints.
+
+The proposed systems hypothesis is different: use ID-level ordinal and topological invariants as a stable compatibility interface across changing retrieval implementations, combine them with provenance/versioning/local risk, and use them to control rollout/fallback.
+
+## Vector Annotation Databases
+
+A 2026 SSRN paper, *Vector Annotation Databases: An Architecture for Auditable Semantic Retrieval*, argues for explicit data objects and deterministic semantic metadata as a stable retrieval core, with vectors as replaceable annotations.
+
+It is relevant conceptual prior art for treating embeddings as derived/replaceable rather than canonical data. Because it is a recent SSRN publication rather than a mature consensus reference, it should be treated as useful prior art rather than definitive validation.
 
 ## Uncertainty-aware retrieval
 
-*DINOSAUR: Distributional Approximate Nearest Neighbour Search for Uncertainty-Aware Retrieval* (arXiv:2606.04603) argues against collapsing uncertain representations to one point and performs ANN over distributional samples.
+*DINOSAUR: Distributional Approximate Nearest Neighbour Search for Uncertainty-Aware Retrieval* argues against collapsing uncertain representations to a single point and performs ANN over distributional samples.
 
-SCF's semantic cells approach uncertainty differently: multiple model observations are transported into a target coordinate system and their disagreement becomes cell dispersion. These ideas may be complementary. A future benchmark should compare point, cell and distributional representations directly.
+SCF SemanticCells encode cross-representation disagreement differently, but uncertainty-aware vector retrieval itself is not novel.
 
-## Hubness and retrieval asymmetry
+## Hubness
 
-Recent work including *Hubness, Not Anisotropy, Drives Cross-Lingual Retrieval Asymmetry...* (arXiv:2605.26575) identifies hubness as an important mechanism in high-dimensional retrieval and reports that local scaling such as CSLS closes a substantial retrieval gap in the studied setting.
+SMA Phase 0 uses hubness diagnostics and CSLS-inspired correction. Hubness and local-scaling remedies predate this work and remain mechanisms, not novelty claims.
 
-SMA Phase 0 uses hubness diagnostics and CSLS-inspired correction; this is an application/combination, not a novelty claim for CSLS or hubness mitigation.
+## What remains potentially differentiated
 
-## Filtered ANN and query planning
+The current strongest systems hypothesis is:
 
-Recent filtered-ANN systems research shows that end-to-end performance depends on query planning/selectivity as well as raw ANN quality. SCF therefore should remain a coordinate/control layer above mature ANN engines rather than attempting to replace their low-level indexing work.
+> **A data system should expose a stable Semantic ABI above embedding implementations: versioned, coordinate-free assertions of application meaning and selected behavior, with local certification risk, tamper-evident history and runtime rollout/fallback semantics.**
 
-## Patent caution
+This differs from merely translating embeddings because a candidate implementation can:
 
-A targeted patent search also finds earlier disclosures around cross-embedding alignment, latent-space geometric transfer and common latent spaces. That further reinforces the need to avoid claiming the broad idea of "mapping one vector space to another". Any protectable novelty, if it exists, would have to lie in narrower system mechanisms and their interaction, and should be evaluated by qualified patent counsel after a dedicated search.
+- satisfy application semantics without reproducing the old ranking;
+- reproduce geometry yet fail a hard semantic clause;
+- be certified in one semantic region and rejected in another;
+- be dense, sparse, graph-based or otherwise non-isomorphic to the previous representation, provided it can evaluate the contract.
 
-## Current differentiation hypothesis
+This is a hypothesis, not a novelty conclusion. A broader paper/patent search may still find close work.
 
-The strongest hypothesis is not "a new vector database" and not "a 3-D map". It is:
+## Next prior-art target
 
-> **Embedding models can be treated as audited coordinate systems over stable logical objects, connected by local transitions and consistency constraints, so stored knowledge can outlive any one representation model.**
+Before any IP or strong novelty claim, specifically search:
 
-The scientific burden is to demonstrate that this layer yields better migration economics, robust retrieval continuity, useful uncertainty, and failure detection on real models without adding unacceptable latency or operational risk.
+- semantic regression contracts for retrieval/ranking systems;
+- invariant-based model deployment gates;
+- specification-driven IR evaluation;
+- regional/selective model rollout based on semantic tests;
+- coordinate-free IR intermediate representations;
+- patents on embedding compatibility certification and semantic regression testing.
+
+## Kill criterion
+
+If Semantic ABI reduces empirically to ordinary fixed benchmark/regression testing—without useful portability, local risk calibration or rollout economics—the abstraction should be simplified rather than protected for its own sake.
