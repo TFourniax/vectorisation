@@ -1,13 +1,11 @@
-"""Real-data stress test for the Semantic ABI abstraction.
+"""Real-data stress test for Semantic ABI + active repair.
 
-Two contracts are intentionally separated:
+Two compatibility dimensions are measured separately:
+1. application semantics: same-class examples should outrank hard cross-class negatives;
+2. captured legacy behavior: selected neighborhoods/triplets from the old retriever.
 
-1. an *application semantic* contract saying a handwritten digit should prefer
-   same-class examples over hard different-class negatives;
-2. a *behavior regression* contract freezing selected neighborhoods/triplets
-   from the legacy raw-pixel retriever.
-
-This lets us distinguish semantic compatibility from implementation identity.
+Then 10% of target-space object identities are deliberately corrupted and the
+active repair planner receives a small inspection/re-embedding budget.
 """
 from __future__ import annotations
 
@@ -18,6 +16,7 @@ from sklearn.datasets import load_digits
 from skimage.feature import hog
 
 from semantic_atlas.contracts import capture_behavior_contract, contract_from_labels
+from semantic_atlas.repair import plan_repairs
 
 
 def normalize(x):
@@ -94,8 +93,20 @@ def main() -> None:
     app_bad = application.audit(corrupted_vectors, implementation="hog-corrupted-10pct")
     behavior_bad = behavior.audit(corrupted_vectors, implementation="hog-corrupted-10pct")
 
-    risky = {int(i) for i, _ in app_bad.top_risks(200)}
     corrupt = set(map(int, corrupt_idx))
+    repair_curves = []
+    for budget in (25, 50, 100, 140, 200):
+        plan = plan_repairs(app_bad, corrupted_vectors, limit=budget, diversity_weight=0.20)
+        selected = {int(candidate.object_id) for candidate in plan.candidates}
+        repair_curves.append(
+            {
+                "budget": budget,
+                "corruption_precision": len(selected & corrupt) / max(1, len(selected)),
+                "corruption_recall": len(selected & corrupt) / len(corrupt),
+                "risk_mass_coverage": plan.risk_mass_coverage,
+                "uniform_random_expected_precision": len(corrupt) / len(corrupted_vectors),
+            }
+        )
 
     print(
         json.dumps(
@@ -110,8 +121,6 @@ def main() -> None:
                     "corrupted_hog_score": app_bad.score,
                     "hog_certified_coverage_risk_0.15": app_hog.certified_coverage(max_risk=0.15),
                     "corrupted_certified_coverage_risk_0.15": app_bad.certified_coverage(max_risk=0.15),
-                    "corruption_hotspot_precision_top200": len(risky & corrupt) / max(1, len(risky)),
-                    "corruption_hotspot_recall_top200": len(risky & corrupt) / len(corrupt),
                 },
                 "behavior_contract": {
                     "clauses": len(behavior.clauses),
@@ -119,7 +128,8 @@ def main() -> None:
                     "hog_score": behavior_hog.score,
                     "corrupted_hog_score": behavior_bad.score,
                 },
-                "interpretation": "Application semantics and legacy retrieval behavior are independent compatibility dimensions.",
+                "active_repair": repair_curves,
+                "interpretation": "Application semantics, legacy behavior and repair priority are independent observables.",
             },
             indent=2,
             sort_keys=True,
