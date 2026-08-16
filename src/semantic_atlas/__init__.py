@@ -17,6 +17,7 @@ from .core import AtlasIndex, AtlasRecord, SearchHit, SearchPolicy
 from .drift import DriftPoint, DriftReport, compare_indexes
 from .embed import FeatureHashEmbedder
 from .fabric import FabricRecord, SemanticCell, SemanticFabric, SpaceSpec
+from .repair import RepairCandidate, RepairPlan, plan_repairs
 from .transition_io import load_transition, save_transition
 
 __all__ = [
@@ -48,4 +49,7 @@ __all__ = [
     "GateDecision",
     "capture_behavior_contract",
     "contract_from_labels",
+    "RepairCandidate",
+    "RepairPlan",
+    "plan_repairs",
 ]
