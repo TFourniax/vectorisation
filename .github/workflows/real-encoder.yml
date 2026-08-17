@@ -37,7 +37,7 @@ jobs:
           --test-queries 200
           --max-docs 1800
           --anchor-fraction 0.20
-          --target-risk 0.20
+          --target-risk 0.10
           --delta 0.10
           --output artifacts/real_encoder_report.json
           --npz artifacts/scifact_pair.npz
