@@ -1,13 +1,13 @@
 """Held-out contract sparsification benchmark on real handwritten digits.
 
-The selector sees only per-clause behavior on one training instance of four
-fault families and never sees affected-object IDs. Evaluation varies affected
-IDs, footprint and severity, and adds a coherent directional-drift family that
-is absent from witness training. Random clause subsets of identical size are the
-baseline.
+Witness selection is contrastive: it sees strong regression examples and weak
+negative controls that the full contract considers acceptable. It never sees
+affected-object IDs. Evaluation varies affected IDs, footprint and severity,
+and adds coherent directional drift, a fault family absent from training.
+Random clause subsets of identical size are the baseline.
 
-This asks a narrow question: can a compact Semantic Witness Set retain the full
-contract's observed regression decisions on genuinely held-out fault instances?
+This asks whether a compact Semantic Witness Set can retain the full contract's
+observed regression decisions without becoming hypersensitive to benign drift.
 It does not prove omitted clauses are universally redundant.
 """
 from __future__ import annotations
@@ -44,11 +44,15 @@ def coherent_drift(mapping, object_ids, *, strength: float, seed: int, name: str
     return SemanticMutation(name, mutated, tuple(ids), "coherent-directional-drift", alpha, {"seed": seed})
 
 
-def fault_panel(mapping, *, seed: int, fraction: float, weak: bool) -> list[SemanticMutation]:
+def choose_ids(mapping, *, seed: int, fraction: float) -> list[str]:
     ids = sorted(mapping)
     rng = np.random.default_rng(seed)
     count = max(2, int(round(len(ids) * fraction)))
-    chosen = [ids[int(i)] for i in rng.choice(len(ids), size=count, replace=False)]
+    return [ids[int(i)] for i in rng.choice(len(ids), size=count, replace=False)]
+
+
+def fault_panel(mapping, *, seed: int, fraction: float, weak: bool) -> list[SemanticMutation]:
+    chosen = choose_ids(mapping, seed=seed, fraction=fraction)
     if weak:
         strength, hub_strength, sigma, drift_strength = 0.65, 0.55, 0.20, 0.30
     else:
@@ -60,6 +64,17 @@ def fault_panel(mapping, *, seed: int, fraction: float, weak: bool) -> list[Sema
         pull_to_hub(mapping, chosen, strength=hub_strength, name=f"hub-{suffix}"),
         add_vector_noise(mapping, chosen, sigma=sigma, seed=seed + 1, name=f"noise-{suffix}"),
         coherent_drift(mapping, chosen, strength=drift_strength, seed=seed + 2, name=f"coherent-drift-{suffix}"),
+    ]
+
+
+def benign_panel(mapping, *, seed: int, fraction: float = 0.10) -> list[SemanticMutation]:
+    """Low-severity negative controls; full-contract decisions define benignity."""
+    chosen = choose_ids(mapping, seed=seed, fraction=fraction)
+    suffix = f"{seed}-f{fraction:.3f}"
+    return [
+        collapse_region(mapping, chosen, strength=0.08, name=f"benign-collapse-{suffix}"),
+        pull_to_hub(mapping, chosen, strength=0.06, name=f"benign-hub-{suffix}"),
+        add_vector_noise(mapping, chosen, sigma=0.025, seed=seed + 1, name=f"benign-noise-{suffix}"),
     ]
 
 
@@ -111,15 +126,22 @@ def main() -> None:
     )
     baseline = contract.audit(mapping, implementation="pixels64:baseline")
 
-    # Selection gets only four broad, strong fault families at 10% footprint.
-    training = scenarios_from_mutations(
+    # Strong faults teach sensitivity; low-severity negative controls teach
+    # specificity. The full contract itself defines which controls are detected.
+    training_faults = scenarios_from_mutations(
         contract,
         default_semantic_mutations(mapping, fraction=0.10, seed=23),
-        "train",
+        "train-fault",
     )
+    training_benign = scenarios_from_mutations(
+        contract,
+        benign_panel(mapping, seed=47),
+        "train-benign",
+    )
+    training = training_faults + training_benign
 
-    # Held-out evaluation changes affected IDs, footprint and severity, and adds
-    # coherent directional drift which the selector never observed.
+    # Held-out evaluation changes IDs, footprint and severity, and adds coherent
+    # directional drift which selection never observed.
     heldout_mutations = (
         fault_panel(mapping, seed=101, fraction=0.03, weak=True)
         + fault_panel(mapping, seed=211, fraction=0.05, weak=False)
@@ -145,6 +167,7 @@ def main() -> None:
             target_detection_coverage=1.0,
             target_loss_coverage=0.95,
             object_coverage_weight=0.08,
+            false_positive_penalty=3.0,
         )
         heldout_eval = evaluate_clause_subset(
             contract,
@@ -187,7 +210,8 @@ def main() -> None:
                 "dataset": "sklearn.datasets.load_digits",
                 "objects": len(mapping),
                 "source_contract_clauses": len(contract.clauses),
-                "training_fault_instances": len(training),
+                "training_fault_instances": len(training_faults),
+                "training_negative_controls": len(training_benign),
                 "heldout_fault_instances": len(heldout),
                 "heldout_fault_fractions": [0.03, 0.05, 0.10],
                 "heldout_unseen_fault_family": "coherent-directional-drift",
@@ -199,9 +223,9 @@ def main() -> None:
                 },
                 "witness_curve": rows,
                 "warning": (
-                    "Witness selection is trained on controlled broad faults. Held-out evaluation changes IDs, footprint and severity "
-                    "and adds one unseen fault family, but this remains a small real-data mechanism benchmark rather than a guarantee "
-                    "of production semantic completeness."
+                    "Witness selection is contrastively trained on broad faults plus low-severity negative controls. Held-out evaluation "
+                    "changes IDs, footprint and severity and adds one unseen fault family, but this remains a small real-data mechanism "
+                    "benchmark rather than a guarantee of production semantic completeness."
                 ),
             },
             indent=2,
