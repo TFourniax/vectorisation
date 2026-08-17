@@ -1,203 +1,235 @@
-# Roadmap — semantic change control, evidence first
+# Roadmap — Semantic ABI after Protocol v1
 
-The roadmap is evidence-gated. **Code does not complete a phase; surviving its falsification gate does.** Negative results change the architecture instead of being hidden.
+The roadmap is evidence-gated: code does not complete a phase; surviving its falsification gate does. See `CURRENT_STATUS.md` for exact dated results and `evidence-manifest.json` for machine-bound evidence.
 
-See [`CURRENT_STATUS.md`](CURRENT_STATUS.md) for exact dated evidence and [`evidence-manifest.json`](evidence-manifest.json) for machine-bound provenance.
+## Completed / promoted gates
 
-## A. Supporting retrieval/migration research
+### Portable Semantic Contract
 
-### A0. Semantic Manifold Atlas — supporting kernel
+Coordinate-free application clauses, hard/soft requirements, provenance, canonical digests, ledger and linting are implemented.
 
-Implemented local charts, mutual-kNN topology, hubness/density diagnostics, CSLS-inspired ranking, intrinsic dimension, `bridge`/`boundary` and hybrid persistence.
+### Dense / sparse / hybrid portability
 
-Status: useful supporting machinery; **not** a claim to replace mature ANN engines.
+Same application-contract abstraction executes across dense MiniLM/BGE, sparse BM25 and BGE+BM25 hybrid systems on SciFact/NFCorpus/FiQA.
 
-### A1. Semantic Coordinate Fabric — implemented, novelty narrowed
+### Predictive-superiority falsification
 
-Implemented global/local transitions, held-out diagnostics, cycle checks, partial migration, virtual materialization, drift/fault-lines and `EvidenceGatedTransition`.
+ABI does **not** generally beat ordinary train-query nDCG as an aggregate predictor of held-out nDCG. That claim is closed. Conventional IR metrics remain required.
 
-Real BGE→MiniLM SciFact:
+### Protocol v1 compiler / wire boundary
 
-- global target-neighbor overlap@10 **0.4745**;
-- local atlas **0.3680**.
+v0.5 adds:
 
-Status: local superiority falsified on this pair. SCF remains optional migration machinery.
+- directional `score(anchor,candidate)` semantics;
+- batch oracle manifest/capabilities;
+- canonical contract compilation;
+- OpenAPI/remote client/CLI;
+- conformance suite;
+- compatibility preflight;
+- language-neutral TCK;
+- state-bound incremental execution;
+- tamper-evident protocol attestation.
 
-## B. Semantic ABI core
+### Real late-interaction portability — PASSED
 
-### B0. Portable application contract — inter-paradigm gate crossed
+Same 600-clause SciFact contract executes unchanged against BM25 and real ColBERTv2 MaxSim. ColBERT has zero missing clauses, hard pass, 660/660 conformance checks and a three-batch compiled audit.
 
-Implemented coordinate-free clauses, hard/soft requirements, weights/provenance, canonical digest, ledger/linting and `SemanticOracle`.
+This closes “late interaction” as a first portability gate. It does not close multi-provider production interoperability.
 
-Real SciFact:
+### Progressive Semantic Audit scale
 
-- same 650-clause digest executes against BGE dense and BM25 sparse;
-- BGE ABI ~0.9467;
-- BM25 ~0.8913;
-- BM25 evaluates 650/650 clauses without dense vectors.
+15/15 exact decisions on the 1,500-clause real-data mechanism test; 10/10 on 10k/100k/250k procedural contracts, 9/10 early. Next work is comparison with stronger sequential baselines and realistic fault dependence.
 
-Three-dataset experiments additionally execute contracts across MiniLM/BGE dense, BM25 sparse and BGE+BM25 hybrid implementations.
+### Repair baseline / negative gates
 
-Next representation gates: graph/late-interaction, production hybrid engines, multimodal, multilingual/domain-specific systems.
+Targeted repair beats random but does not restore 90% of downstream quality. Fixed role-weighted clause-incidence repair fails independent validation and is not promoted.
 
-### B1. Contract conformity vs adequacy — now core architecture
+## Phase A — real provider control plane
 
-Implemented `ContractAdequacyEvidence`, `ContractAdequacyRequirements`, `ContractAdequacyReport` and explicit `adequate` / `failed` / `insufficient_evidence` states, with no universal hidden threshold.
+**Goal:** prove Protocol v1 works above real deployed retrieval backends rather than only local adapters.
 
-The three-dataset predictive-validity gate is complete.
+Targets:
 
-Canonical results:
+1. Elasticsearch/OpenSearch BM25 + dense/hybrid adapter;
+2. Qdrant adapter;
+3. pgvector adapter;
+4. Vespa adapter, ideally including late-interaction behavior where practical.
 
-- mean all-variant Spearman ABI→test nDCG **0.9697**;
-- train nDCG→test nDCG **0.9757**;
-- pooled delta Spearman ABI **0.9573** vs baseline **0.9724**.
+Required evidence per provider:
 
-**Result:** aggregate predictive-superiority claim is not supported. ABI remains strongly associated with quality but is not a replacement for ordinary IR validation.
+- manifest + capability preflight;
+- TCK/conformance;
+- unchanged application-contract execution;
+- zero silent missing clauses;
+- p50/p95/p99 control-plane latency;
+- network payload sizes and batch counts;
+- provider/API cost;
+- fallback behavior;
+- provider state/version identity;
+- evidence that the control plane does not require rebuilding the provider's ANN index.
 
-Next adequacy gates:
+**Kill/narrow rule:** if adapters need provider-specific semantic clauses rather than provider-specific execution adapters, the portability thesis is weaker than claimed.
 
-1. determine which coverage/mutation/localization axes predict real blind spots;
-2. predeclare application adequacy policies before final held-out evaluation;
-3. adequacy under multilingual/domain/temporal shift;
-4. slice-specific adequacy for rare/critical regions;
-5. hard-invariant failures that aggregate nDCG can miss.
+## Phase B — independent implementation / protocol reality
 
-### B2. Support-aware selective rollout — first neural gate crossed
+**Goal:** prove Protocol v1 is not accidentally Python-specific.
 
-SciFact/BGE:
+Implement the TCK in at least one independent language (preferred: Rust or TypeScript, then Go).
 
-- failure-risk AUC ~0.7875;
-- 10% SLA rejected;
-- 15% preregistered exact rule certified with upper bound ~13.16%;
-- held-out accepted coverage 98.5%, realized accepted failure ~10.15%.
+Gate:
 
-Next baselines: Learn-Then-Test, Adaptive LTT/e-processes, conformal/selective risk control and shift-aware calibration.
+- exact contract digest;
+- exact plan digest;
+- exact manifest digest;
+- exact snapshot digest;
+- exact protocol-audit digest;
+- identical wire behavior on the canonical fixture;
+- remote Python client successfully audits the external implementation and vice versa where practical.
 
-### B3. Progressive Semantic Audit — strong scale gate
+**Kill/narrow rule:** if canonicalization/digest semantics cannot be reproduced simply outside Python, fix the protocol before adding providers.
 
-Implemented exhaustive hard clauses, weighted soft sampling, cached oracle calls, predeclared looks, finite-sample bounds and exact fallback.
+## Phase C — graph / relational algebra
 
-Evidence:
+**Goal:** cross another genuinely different retrieval algebra after sparse, dense and late interaction.
 
-- Digits 1,500 clauses: **15/15** agreement, **12/15** early, mean early unique fraction **7.17%**;
-- procedural 10k/100k/250k: **10/10** agreement, **9/10** early;
-- representative 250k decisions use **0.04–0.3992%** clauses away from the boundary.
+Candidate experiment:
 
-Next: aLTT/e-process baseline, stratified/slice-aware sampling, non-iid sparse faults, heterogeneous oracle costs, million-clause scale.
+- typed graph or knowledge-graph retrieval;
+- directional edge/relation scoring;
+- top-k traversal/ranking exposed via Protocol v1;
+- same application contract where the contract is semantically meaningful.
 
-### B4. Contract acquisition — promising, not solved
+Use compatibility preflight to reject clauses the graph scorer cannot meaningfully execute rather than forcing false equivalence.
 
-Semantic Diff currently gives roughly 5–6× enrichment of label-resolvable questions on Digits.
+**Gate:** useful portable clauses must survive without pretending that every clause family is universal.
 
-Next: human/domain study; random, uncertainty, coverage-guided and active-learning baselines; annotation-cost curves; expert judgments per real regression caught.
+## Phase D — Contract Adequacy under shift
 
-### B5. Mutation / adequacy testing
+Test multilingual, domain, temporal and rare/high-criticality slices.
 
-Current mutations: identity permutation, local collapse, hub pull, noise. Current Digits contracts kill tested mutation families globally; localization is weaker.
+Required methodology:
 
-Next: realistic retriever/index faults, dense/sparse/graph-specific failures and correlation between mutation adequacy and downstream adequacy.
+- independent authoring vs adequacy/certification splits;
+- explicit object/slice coverage;
+- fault-family diversity;
+- baseline ordinary IR metrics;
+- mutation and real shift evidence;
+- `insufficient_evidence` whenever a required slice has inadequate support.
 
-## C. Typed implementation integrity
+Primary question:
 
-### C0. Integrity canaries — positive but incomplete
+> When does contract conformity remain informative after the deployment distribution changes?
 
-SciFact/BGE 10% corruption:
+## Phase E — state-bound incremental audits at real scale
 
-- application-only document coverage 32.3%;
-- + random integrity anchors 67.0%;
-- + coverage-oriented anchors 72.5%.
+Current incremental reuse is software-validated but not yet economically proven on real providers.
 
-At budget 100, best nDCG-gap recovery improves from ~62.3% to ~70.2–70.8%. Budget 180 coverage-oriented integrity reaches ~71.2%.
+Benchmarks must simulate/version:
 
-Still no 90% recovery.
+- unchanged provider state + contract-only edit;
+- small index delta;
+- model change;
+- preprocessing change;
+- provider config change;
+- nondeterministic provider.
 
-### C1. Clause-incidence-aware repair — **current gate**
+Report:
 
-Naive object risk can blame a healthy neighborhood anchor while a corrupted expected/intruding neighbor is causal.
+- operation reuse fraction;
+- RPC/API calls avoided;
+- latency/cost savings;
+- invalidation correctness;
+- false cache reuse (target: zero under declared changes).
 
-A new planner re-inspects violated clauses and assigns explicit role-weighted blame to missing expected neighbors, intruding neighbors, triplet members, reciprocal endpoints and anchors with a lower diagnostic prior.
+## Phase F — Progressive Audit vs stronger statistical baselines
 
-It is being tested on the same SciFact/BGE corruption regime against highest-risk, risk/diversity and existing coverage planners.
+Compare current transparent baseline against:
 
-**Promotion rule:** keep only if held-out corruption precision and/or downstream recovery improves materially over simple baselines. Otherwise delete or retain only as failed evidence.
+- Adaptive Learn-Then-Test/e-processes;
+- relevant conformal/selective-risk baselines;
+- stratified/slice-aware sampling;
+- heterogeneous clause/backend costs;
+- non-iid and clustered failures.
 
-## D. Fixed-compression experiments — negative evidence
+The full contract must remain normative. Any faster method must earn its complexity on untouched scenarios.
 
-### D0. Fixed Semantic Witness
+## Phase G — release governance
 
-Held-out stress:
+Move `SemanticProtocolAttestation` from tamper-evident digest envelope toward independently verifiable release evidence:
 
-- 10 clauses: TPR 62.5%, FPR 0%;
-- 25 clauses: TPR 100%, FPR 28.6%;
-- 100 clauses: TPR 100%, FPR 42.9%.
+- signature/KMS integration;
+- model/index/provider version identity;
+- state-digest requirements;
+- expiry;
+- revocation/quarantine;
+- key rotation;
+- certificate transparency / append-only release log if justified;
+- evidence retention policy.
 
-### D1. Learned Diagnostic Panel
+Do not claim generic attestation novelty; focus on retrieval-specific binding of portable contract + adequacy + provider execution + risk.
 
-Perfect training discrimination → **0% held-out regression recall**.
+## Phase H — repair attribution without hand-tuned blame priors
 
-Conclusion: keep the full normative contract; reduce cost through statistically controlled sampling.
+The fixed-prior incidence planner failed independent validation.
 
-## E. Repair economics
+Next research only if economic value remains material:
 
-SciFact/BGE 10% corruption:
+- learn fault attribution on training fault families;
+- validate on untouched fault families;
+- structural counterfactual attribution where possible;
+- compare directly to simple coverage/high-risk baselines;
+- measure downstream recovery per repair dollar rather than localization alone.
 
-- nDCG 0.7875 → 0.6970;
-- budget25 coverage planner: 88% corrupted docs, ~33.9% nDCG-gap recovery;
-- random: ~7.3% corrupted, ~1.5% recovery;
-- budget180 targeted best ~50% vs random ~9%.
+No new planner is promoted from the development fault on which it was designed.
 
-No tested planner reaches **90%** lost-nDCG recovery. Application conformity can saturate before downstream repair.
+## Phase I — human contract-acquisition economics
 
-Next: clause-incidence-aware repair, multiple fault families, certified-coverage gained per cost, joint repair/fallback stopping policy.
+Semantic Diff is promising but must be measured against baselines with real annotation cost.
 
-## F. Predictive validity — gate closed / claim narrowed
+Compare:
 
-Canonical SciFact/NFCorpus/FiQA campaign:
+- random disagreements;
+- uncertainty;
+- diversity/coverage;
+- Semantic Diff priority;
+- cost-aware/submodular selection.
 
-| metric | ABI | train nDCG |
-|---|---:|---:|
-| mean per-dataset Spearman | 0.9697 | **0.9757** |
-| pooled delta Spearman | 0.9573 | **0.9724** |
-| pooled delta Pearson | 0.9519 | **0.9850** |
+Measure:
 
-Status: **do not pursue “ABI as better global ranking metric.”** Retain ordinary nDCG/Recall and focus ABI research on portable hard invariants, support/risk, adequacy, integrity and change governance.
+- expert minutes;
+- accepted clauses;
+- new fault families killed;
+- real regressions caught;
+- marginal coverage/adequacy gain.
 
-## G. Real infrastructure adapters
+## Phase J — novelty / publication / IP
 
-Do not reimplement ANN.
+Before any strong novelty or patent claim:
 
-Priority: Elasticsearch/BM25+dense hybrid, Qdrant, pgvector, Vespa/late interaction, then HNSW/DiskANN benchmark adapters.
+- professional patent search;
+- systematic paper/product search around retrieval regression contracts, protocol conformance, AI release attestation, vector DB migration and semantic test interfaces;
+- explicit claim chart separating known components from the integrated system;
+- decide whether the correct output is open standard, research paper, product/control plane, patent filing, or some combination.
 
-Required observability: representation provenance, application vs integrity roles, quarantine/fallback/rollback, p50/p95/p99, backfill cost avoided and evidence digests.
+## Current strategic sequence
 
-## H. Richer invariants only when evidence demands them
+Recommended order:
 
-Candidates: typed relations/hyperedges, temporal/freshness constraints, contradictions, provenance/trust, monotonic domain constraints, multimodal consistency, uncertainty and causal/counterfactual assertions.
-
-Rule: every richer clause must buy measurable adequacy or operational value per authoring/audit cost.
-
-## I. Release governance / open interchange
-
-Generic AI attestation/certificates have prior art. The narrower target is retrieval-specific evidence bound to a portable Semantic ABI.
-
-If evidence survives: explicit adequacy profiles, typed contract-role manifests, signed certificates, expiry/revocation, transparency log, reviewer identity, semantic versioning and retriever conformance suite.
-
-## J. Evidence freshness — implemented
-
-Promoted evidence is bound to GitHub Actions run/head identity, artifact SHA-256 and Git blob identity of evidence-sensitive sources. `tools/check_evidence_freshness.py` enforces freshness in CI.
-
-## Current highest-value sequence
-
-1. finish clause-incidence-aware repair gate;
-2. graph/late-interaction portability;
-3. adequacy under shift;
-4. Progressive Audit vs aLTT/e-processes;
-5. real Elasticsearch/Qdrant/pgvector/Vespa backends;
-6. human contract-acquisition study;
-7. only then consider protocol standardization, publication or IP claims.
+1. **real provider adapters**;
+2. **independent-language TCK implementation**;
+3. **graph/relational retrieval gate**;
+4. **adequacy under shift**;
+5. **incremental audit economics**;
+6. **stronger Progressive Audit statistics**;
+7. **signed release governance**;
+8. **human acquisition economics**;
+9. **repair attribution research** only if economic signal justifies it;
+10. professional novelty/IP work before public strong claims.
 
 ## End-state hypothesis
 
-Not “a better vector table” and not “a better nDCG score”, but a system where semantic infrastructure has:
+Not a better vector table and not a better benchmark score, but a control plane with:
 
-**stable identity + portable application invariants + explicit contract adequacy + typed implementation integrity + replaceable representations + support/risk + evidence-gated rollout + repair + provenance + controlled semantic evolution.**
+**stable identity + portable application invariants + compiled provider-independent execution + explicit adequacy + typed implementation integrity + selective risk/fallback + state-bound incremental audit + attested release evidence + controlled semantic evolution.**
+
+The ColBERT gate makes that hypothesis materially more credible. The next challenge is proving that the protocol remains useful across real infrastructure and operational economics, not merely additional model families.
