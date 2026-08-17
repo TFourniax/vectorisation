@@ -18,6 +18,17 @@ from .drift import DriftPoint, DriftReport, compare_indexes
 from .embed import FeatureHashEmbedder
 from .fabric import FabricRecord, SemanticCell, SemanticFabric, SpaceSpec
 from .lifecycle import AssessmentDelta, ChangeAssessment, SemanticChangeManager, compare_assessments
+from .mutation import (
+    MutationOutcome,
+    SemanticMutation,
+    SemanticMutationReport,
+    add_vector_noise,
+    collapse_region,
+    default_semantic_mutations,
+    mutation_test,
+    permute_identities,
+    pull_to_hub,
+)
 from .release import EvidenceReference, ImplementationFingerprint, SemanticReleaseCertificate, make_release_certificate
 from .repair import (
     CoverageRepairCandidate,
@@ -100,4 +111,13 @@ __all__ = [
     "ContractQuestion",
     "semantic_diff",
     "propose_contract_questions",
+    "SemanticMutation",
+    "MutationOutcome",
+    "SemanticMutationReport",
+    "permute_identities",
+    "collapse_region",
+    "pull_to_hub",
+    "add_vector_noise",
+    "default_semantic_mutations",
+    "mutation_test",
 ]
