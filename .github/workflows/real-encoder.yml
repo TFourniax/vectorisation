@@ -8,7 +8,9 @@ on:
     paths:
       - benchmarks/real_encoder_scifact_benchmark.py
       - benchmarks/real_encoder_risk_calibration_benchmark.py
+      - benchmarks/semantic_abi_sparse_scifact_benchmark.py
       - benchmarks/evidence_gated_transition_npz.py
+      - src/semantic_atlas/oracle.py
       - src/semantic_atlas/risk_control.py
       - src/semantic_atlas/risk_exact.py
       - src/semantic_atlas/support.py
@@ -47,6 +49,14 @@ jobs:
           --delta 0.10
           --output artifacts/real_encoder_report.json
           --npz artifacts/scifact_pair.npz
+      - name: Audit same Semantic ABI over sparse BM25
+        run: >-
+          python benchmarks/semantic_abi_sparse_scifact_benchmark.py
+          --dense-report artifacts/real_encoder_report.json
+          --train-queries 500
+          --test-queries 200
+          --max-docs 1800
+          --output artifacts/sparse_portability_report.json
       - name: Compare semantic risk certification policies
         env:
           HF_HUB_DISABLE_TELEMETRY: "1"
