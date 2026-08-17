@@ -6,7 +6,8 @@ from typing import Mapping, Sequence
 
 import numpy as np
 
-from .contracts import ContractReport, GateDecision
+from .contracts import ContractReport
+from .support import estimate_local_semantic_risk
 
 _EPS = 1e-12
 
@@ -16,9 +17,9 @@ class CalibrationEvent:
     """Held-out observation used to calibrate a semantic rollout gate.
 
     ``proxy_risk`` is any pre-deployment score where lower means safer (for
-    example ``ContractReport.local_risk``). ``observed_loss`` is the semantic
-    failure observed on an independently judged calibration case and must be a
-    Bernoulli value for the current KL certificate.
+    example a support-aware local Semantic ABI risk). ``observed_loss`` is the
+    semantic failure observed on an independently judged calibration case and
+    must be a Bernoulli value for the current KL certificate.
     """
 
     proxy_risk: float
@@ -162,8 +163,6 @@ def calibrate_semantic_risk(
         mask = selection_risk <= threshold
         if int(np.sum(mask)) < int(min_selection):
             continue
-        # Selection is only a proposal stage. Keeping empirically plausible
-        # thresholds reduces multiplicity without using certification outcomes.
         if float(np.mean(selection_loss[mask])) <= target_risk:
             candidates.append(float(threshold))
 
@@ -211,7 +210,7 @@ def calibrate_semantic_risk(
 
 
 class CertifiedSemanticABIGate:
-    """Semantic ABI rollout gate using per-implementation statistical certificates."""
+    """Semantic ABI rollout gate using support-aware statistical certificates."""
 
     def __init__(
         self,
@@ -240,10 +239,12 @@ class CertifiedSemanticABIGate:
             if not certificate.certified or certificate.threshold is None:
                 rejected.append(f"{name}: no statistical certificate")
                 continue
-            local_risk = report.local_risk(query_vectors[name], landmarks)
+            estimate = estimate_local_semantic_risk(report, query_vectors[name], landmarks)
+            local_risk = estimate.risk
             if not certificate.accepts(local_risk):
                 rejected.append(
-                    f"{name}: local risk {local_risk:.3f} exceeds certified threshold {certificate.threshold:.3f}"
+                    f"{name}: support-aware local risk {local_risk:.3f} exceeds certified threshold "
+                    f"{certificate.threshold:.3f} (support={estimate.support:.3f})"
                 )
                 continue
             utility = report.score * (1.0 - local_risk) * max(0.0, 1.0 - certificate.upper_risk_bound)
@@ -254,4 +255,4 @@ class CertifiedSemanticABIGate:
 
         candidates.sort(key=lambda row: (row[0], row[1], row[2]), reverse=True)
         utility, _, name, local_risk, upper = candidates[0]
-        return CertifiedGateDecision(name, True, local_risk, utility, upper, "statistically certified semantic region")
+        return CertifiedGateDecision(name, True, local_risk, utility, upper, "statistically certified semantic region with contract support")
