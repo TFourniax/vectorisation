@@ -1,6 +1,7 @@
 """Semantic Manifold Atlas research prototype."""
 
 from .alignment import RoutedTransport, TransitionAtlas, TransitionDiagnostics, TransitionGraph
+from .contract_lint import ContractIssue, ContractLintReport, lint_contract
 from .contracts import (
     ContractLedger,
     ContractReport,
@@ -84,6 +85,9 @@ __all__ = [
     "GateDecision",
     "capture_behavior_contract",
     "contract_from_labels",
+    "ContractIssue",
+    "ContractLintReport",
+    "lint_contract",
     "SemanticOracle",
     "DenseVectorOracle",
     "CallbackSemanticOracle",
