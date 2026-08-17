@@ -63,8 +63,6 @@ def exact_binomial_upper_bound(losses: Sequence[float] | np.ndarray, *, delta: f
     for _ in range(80):
         mid = (lo + hi) / 2.0
         cdf = _binomial_cdf(failures, n, mid)
-        # P_p(X <= observed failures) decreases as p increases. The exact
-        # one-sided upper endpoint solves CDF = delta.
         if cdf > delta:
             lo = mid
         else:
@@ -81,22 +79,26 @@ def calibrate_semantic_risk_preregistered(
     threshold_candidates: int = 12,
     min_selection: int = 20,
     min_certification: int = 30,
+    selection_risk_fraction: float = 0.75,
     seed: int = 17,
 ) -> RiskCertificate:
-    """Certify one threshold selected entirely before viewing certification labels.
+    """Certify one threshold selected before viewing certification labels.
 
-    The selection split proposes a family of proxy-risk quantiles and chooses
-    the broadest rule whose *selection* empirical loss is within the requested
-    risk budget. That single threshold is then frozen. The independent
-    certification split evaluates exactly one Bernoulli hypothesis using an
-    exact one-sided binomial confidence bound, so no multiplicity correction is
-    paid on the certification split.
+    The selection split proposes proxy-risk quantiles and chooses the broadest
+    rule whose empirical loss is below a stricter *selection budget*:
+    ``target_risk * selection_risk_fraction``. The default 0.75 reserves room
+    for finite-sample uncertainty; it is a candidate-selection heuristic, not a
+    coverage guarantee. That single threshold is then frozen and evaluated on
+    the independent certification split with an exact one-sided binomial bound.
 
-    The trade-off versus ``calibrate_semantic_risk`` is deliberate: this method
-    cannot fall back to a narrower threshold after seeing certification
-    outcomes. If the pre-registered rule fails, it abstains. This is a
-    sample-efficiency baseline, not a universal replacement for Learn-Then-Test
-    or richer selective/conformal risk-control procedures.
+    Because exactly one fixed rule is tested on certification data, no
+    multiplicity correction is paid there. The trade-off versus
+    ``calibrate_semantic_risk`` is that this procedure cannot inspect holdout
+    labels and then fall back to another threshold. If the pre-registered rule
+    fails, it abstains.
+
+    This is a sample-efficiency baseline, not a claim to supersede
+    Learn-Then-Test, selective conformal risk control, or adaptive methods.
     """
     if not 0.0 < target_risk < 1.0:
         raise ValueError("target_risk must be in (0, 1)")
@@ -104,6 +106,8 @@ def calibrate_semantic_risk_preregistered(
         raise ValueError("delta must be in (0, 1)")
     if not 0.1 <= selection_fraction <= 0.9:
         raise ValueError("selection_fraction must be in [0.1, 0.9]")
+    if not 0.0 < selection_risk_fraction <= 1.0:
+        raise ValueError("selection_risk_fraction must be in (0, 1]")
 
     rows = list(events)
     total = len(rows)
@@ -111,19 +115,8 @@ def calibrate_semantic_risk_preregistered(
     method = "split-preregistered-exact-binomial"
     if total < minimum:
         return RiskCertificate(
-            target_risk,
-            delta,
-            None,
-            1.0,
-            1.0,
-            0,
-            0,
-            total,
-            0.0,
-            0,
-            False,
-            method,
-            f"insufficient calibration events: {total} < {minimum}",
+            target_risk, delta, None, 1.0, 1.0, 0, 0, total, 0.0, 0, False,
+            method, f"insufficient calibration events: {total} < {minimum}",
         )
 
     rng = np.random.default_rng(int(seed))
@@ -141,33 +134,23 @@ def calibrate_semantic_risk_preregistered(
         max(2, int(threshold_candidates)),
     )
     thresholds = np.unique(np.quantile(selection_risk, quantiles))
+    selection_budget = target_risk * float(selection_risk_fraction)
 
     plausible: list[float] = []
     for threshold in thresholds:
         mask = selection_risk <= threshold
         if int(np.sum(mask)) < int(min_selection):
             continue
-        if float(np.mean(selection_loss[mask])) <= target_risk:
+        if float(np.mean(selection_loss[mask])) <= selection_budget:
             plausible.append(float(threshold))
 
     if not plausible:
         return RiskCertificate(
-            target_risk,
-            delta,
-            None,
-            1.0,
-            1.0,
-            0,
-            len(certification),
-            total,
-            0.0,
-            0,
-            False,
+            target_risk, delta, None, 1.0, 1.0, 0, len(certification), total, 0.0, 0, False,
             method,
-            "selection split found no plausible threshold",
+            f"selection split found no plausible threshold under internal risk budget {selection_budget:.6f}",
         )
 
-    # Pre-register exactly one rule before certification labels are inspected.
     threshold = max(plausible)
     cert_risk = np.asarray([row.proxy_risk for row in certification], dtype=np.float64)
     cert_loss = np.asarray([row.observed_loss for row in certification], dtype=np.float64)
@@ -176,18 +159,8 @@ def calibrate_semantic_risk_preregistered(
     coverage = accepted / max(1, len(certification))
     if accepted < int(min_certification):
         return RiskCertificate(
-            target_risk,
-            delta,
-            threshold,
-            1.0,
-            1.0,
-            accepted,
-            len(certification),
-            total,
-            float(coverage),
-            1,
-            False,
-            method,
+            target_risk, delta, threshold, 1.0, 1.0, accepted, len(certification), total,
+            float(coverage), 1, False, method,
             "pre-registered threshold has insufficient certification support",
         )
 
@@ -196,18 +169,8 @@ def calibrate_semantic_risk_preregistered(
     upper = exact_binomial_upper_bound(selected_losses, delta=delta)
     certified = bool(upper <= target_risk)
     return RiskCertificate(
-        target_risk,
-        delta,
-        threshold,
-        empirical,
-        upper,
-        accepted,
-        len(certification),
-        total,
-        float(coverage),
-        1,
-        certified,
-        method,
+        target_risk, delta, threshold, empirical, upper, accepted, len(certification), total,
+        float(coverage), 1, certified, method,
         (
             "pre-registered threshold certified on independent holdout"
             if certified
