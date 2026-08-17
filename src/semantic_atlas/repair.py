@@ -118,3 +118,129 @@ def plan_repairs(
         sum(report.object_risk.get(object_id, 0.0) for object_id in selected)
     )
     return RepairPlan(output, selected_risk, total)
+
+
+@dataclass(slots=True, frozen=True)
+class CoverageRepairCandidate:
+    object_id: str
+    cost: float
+    marginal_violation_mass: float
+    risk_bonus: float
+    marginal_gain: float
+    gain_per_cost: float
+    newly_covered_clauses: tuple[int, ...]
+
+
+@dataclass(slots=True)
+class CoverageRepairPlan:
+    candidates: list[CoverageRepairCandidate]
+    spent: float
+    budget: float
+    covered_violation_mass: float
+    total_violation_mass: float
+    covered_clause_indices: tuple[int, ...]
+
+    @property
+    def violation_mass_coverage(self) -> float:
+        if self.total_violation_mass <= 0.0:
+            return 0.0
+        return self.covered_violation_mass / self.total_violation_mass
+
+
+def plan_repairs_by_coverage(
+    report: ContractReport,
+    *,
+    budget: float,
+    costs: Mapping[str, float] | None = None,
+    risk_bonus_weight: float = 0.15,
+    hard_multiplier: float = 2.0,
+    min_gain: float = 1e-12,
+) -> CoverageRepairPlan:
+    """Allocate a repair/review budget to cover semantic violations efficiently.
+
+    Each violated contract clause contributes a non-negative violation mass
+    ``weight * (1-score)`` (optionally amplified for hard clauses). Reviewing or
+    re-embedding any object that participates in a clause *touches* that clause.
+    The planner greedily maximizes newly covered violation mass per unit cost,
+    with a small modular bonus for high object risk.
+
+    This is a diagnostic-budget objective, not a claim that touching one object
+    will automatically repair every incident clause. Its value is explicit: it
+    prioritizes the smallest set of logical objects that exposes the largest
+    amount of known semantic breakage for investigation.
+    """
+
+    budget = float(budget)
+    if budget <= 0.0:
+        return CoverageRepairPlan([], 0.0, budget, 0.0, 0.0, ())
+    costs = dict(costs or {})
+    risk_bonus_weight = max(0.0, float(risk_bonus_weight))
+    hard_multiplier = max(1.0, float(hard_multiplier))
+
+    clause_mass: dict[int, float] = {}
+    incidence: dict[str, set[int]] = {}
+    for result in report.violated:
+        loss = max(0.0, 1.0 - float(result.score))
+        mass = max(0.0, float(result.weight)) * loss
+        if result.hard:
+            mass *= hard_multiplier
+        if mass <= 0.0:
+            continue
+        clause_mass[result.clause_index] = mass
+        for object_id in result.objects:
+            incidence.setdefault(object_id, set()).add(result.clause_index)
+
+    total_mass = float(sum(clause_mass.values()))
+    if not incidence:
+        return CoverageRepairPlan([], 0.0, budget, 0.0, total_mass, ())
+
+    selected: list[CoverageRepairCandidate] = []
+    covered: set[int] = set()
+    spent = 0.0
+    available = set(incidence)
+
+    while available:
+        best: tuple[float, float, str, float, float, tuple[int, ...]] | None = None
+        for object_id in available:
+            cost = float(costs.get(object_id, 1.0))
+            if cost <= 0.0:
+                raise ValueError(f"repair cost must be positive for {object_id!r}")
+            if spent + cost > budget + _EPS:
+                continue
+            new_clauses = tuple(sorted(incidence[object_id] - covered))
+            violation_gain = float(sum(clause_mass[idx] for idx in new_clauses))
+            risk_bonus = risk_bonus_weight * float(report.object_risk.get(object_id, 0.0))
+            marginal_gain = violation_gain + risk_bonus
+            gain_per_cost = marginal_gain / cost
+            candidate = (gain_per_cost, marginal_gain, object_id, cost, risk_bonus, new_clauses)
+            if best is None or candidate > best:
+                best = candidate
+
+        if best is None or best[1] <= min_gain:
+            break
+        gain_per_cost, marginal_gain, object_id, cost, risk_bonus, new_clauses = best
+        violation_gain = float(sum(clause_mass[idx] for idx in new_clauses))
+        selected.append(
+            CoverageRepairCandidate(
+                object_id=object_id,
+                cost=cost,
+                marginal_violation_mass=violation_gain,
+                risk_bonus=float(risk_bonus),
+                marginal_gain=float(marginal_gain),
+                gain_per_cost=float(gain_per_cost),
+                newly_covered_clauses=new_clauses,
+            )
+        )
+        spent += cost
+        covered.update(new_clauses)
+        available.remove(object_id)
+
+    covered_mass = float(sum(clause_mass[idx] for idx in covered))
+    return CoverageRepairPlan(
+        selected,
+        float(spent),
+        budget,
+        covered_mass,
+        total_mass,
+        tuple(sorted(covered)),
+    )
