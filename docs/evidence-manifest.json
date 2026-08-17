@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "generated_at": "2026-08-17",
-  "policy": "Promoted evidence is valid only while every listed source Git blob matches the current branch. Workflow artifact digests bind the recorded result bundle; source freshness is enforced offline by tools/check_evidence_freshness.py.",
+  "policy": "Promoted evidence is valid only while every listed source Git blob matches the current branch. Workflow artifact digests bind the recorded result bundle; source freshness is enforced offline by tools/check_evidence_freshness.py. Promoted means current/reproducible evidence, not necessarily a positive hypothesis result.",
   "evidence": {
     "real-neural-scifact-v2": {
       "status": "promoted",
@@ -88,17 +88,55 @@
         "src/semantic_atlas/contracts.py": "10613bf566dd3a27a61c78361f98ef41f37b958a"
       }
     },
-    "multidataset-cross-paradigm-v1": {
-      "status": "pending",
-      "workflow": "multidataset-semantic-abi",
-      "workflow_run_id": 32027885908,
-      "note": "Awaiting autonomous multi-dataset dense/sparse/hybrid falsification result before any claim is promoted."
-    },
     "neural-repair-economics-v1": {
-      "status": "pending",
+      "status": "promoted",
       "workflow": "semantic-repair-neural",
       "workflow_run_id": 32028491625,
-      "note": "Awaiting SciFact/BGE controlled re-embedding economics result before any repair-economics claim is promoted."
+      "workflow_head_sha": "d7ecf43f8c7ad4c991c50a481ed4f4ce9c23a187",
+      "artifact_name": "semantic-repair-neural-evidence",
+      "artifact_sha256": "sha256:e384033e5cf943c6b43d0473eefc57d77f91cd6f2e7c69b73eed95a3d22487a6",
+      "claims": [
+        "targeted SciFact/BGE repair selection strongly enriches corrupted documents over random",
+        "targeted repair recovers materially more lost held-out nDCG than random at matched budgets",
+        "no tested planner reaches the preregistered 90-percent lost-nDCG recovery target",
+        "application-contract conformity can return near clean values before held-out downstream quality is restored"
+      ],
+      "source_blobs": {
+        "benchmarks/semantic_repair_scifact_benchmark.py": "73465e2c5ae8f923609a85f0e2c540a0fc9dcf0c",
+        "benchmarks/semantic_abi_multidataset_benchmark.py": "77f05066738c16c5929ea6fe0f30fcd7eeb1aafe",
+        "src/semantic_atlas/contracts.py": "10613bf566dd3a27a61c78361f98ef41f37b958a",
+        "src/semantic_atlas/oracle.py": "0608d587f2a94d45d8541088cd2dfd6e4dc58553",
+        "src/semantic_atlas/repair.py": "59169de9f603e2e97c61ec808c8faa7798856988"
+      }
+    },
+    "implementation-integrity-repair-v1": {
+      "status": "promoted",
+      "workflow": "semantic-repair-integrity",
+      "workflow_run_id": 32029578855,
+      "workflow_head_sha": "d9ceddf649ab0c816e43b3f5635db6eae23f1155",
+      "artifact_name": "semantic-repair-integrity-evidence",
+      "artifact_sha256": "sha256:f2091afdc83039705a201d63db0d4c3cda007c1eb26f2a86bd8bab473f1dbd72",
+      "claims": [
+        "separate implementation-integrity canaries approximately double observed document coverage without test qrels",
+        "integrity canaries improve large-budget held-out nDCG recovery over application-only diagnosis",
+        "90-percent lost-nDCG recovery remains unreached",
+        "naively merging application and integrity object risk can misattribute neighborhood failures to healthy anchors"
+      ],
+      "source_blobs": {
+        "benchmarks/semantic_repair_integrity_scifact_benchmark.py": "1b942ff370ec3b2a7ae869dad3e1da3d60988dd0",
+        "benchmarks/semantic_repair_scifact_benchmark.py": "73465e2c5ae8f923609a85f0e2c540a0fc9dcf0c",
+        "benchmarks/semantic_abi_multidataset_benchmark.py": "77f05066738c16c5929ea6fe0f30fcd7eeb1aafe",
+        "src/semantic_atlas/contracts.py": "10613bf566dd3a27a61c78361f98ef41f37b958a",
+        "src/semantic_atlas/oracle.py": "0608d587f2a94d45d8541088cd2dfd6e4dc58553",
+        "src/semantic_atlas/repair.py": "59169de9f603e2e97c61ec808c8faa7798856988"
+      }
+    },
+    "multidataset-cross-paradigm-v1": {
+      "status": "pending",
+      "workflow": "multidataset-semantic-abi / multidataset-semantic-abi-parallel",
+      "workflow_run_id": 32027885908,
+      "parallel_workflow_run_id": 32030011004,
+      "note": "FiQA and NFCorpus have completed; SciFact is still running. No cross-dataset predictive-superiority claim is promoted until all required artifacts are available."
     }
   }
 }
