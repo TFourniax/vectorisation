@@ -1,106 +1,370 @@
-# V2 benchmark protocol
+# Benchmark / evidence protocol
 
-Synthetic tests are mechanism tests. They are useful for proving that an implementation can detect or recover a constructed condition; they are not evidence of production superiority.
+The repository distinguishes **software correctness**, **mechanism evidence**, **real representation evidence**, **deployment-risk evidence** and **negative ablations**. Mixing these categories is not allowed.
 
-## Current deterministic mechanism tests
+For the latest numbers, use [`CURRENT_STATUS.md`](CURRENT_STATUS.md). Machine-readable evidence provenance is moving to `evidence-manifest.json`.
 
-`benchmarks/coordinate_fabric_benchmark.py` covers four independent mechanisms.
+## 1. Evidence classes
 
-| Mechanism | Baseline | SCF result | Interpretation |
-|---|---:|---:|---|
-| Piecewise cross-model warp | global Procrustes held-out cosine 0.7042 | local atlas 0.9414 | local mapping recovers deliberately region-dependent geometry |
-| 25% new-index migration | new-only overlap@10 vs legacy SMA oracle 0.2080 | fabric 0.8460 | complete legacy evidence remains usable from a new-space query |
-| Corrupted transition cycle | good cycle cosine ~1.0000 | corrupted -0.0760 | redundant coordinate routes expose corruption |
-| 20% direct new vectors | direct coverage 0.20 | virtual coverage 1.00, overlap@10 1.00 | exact synthetic rotation can be virtually materialized |
+### Class S — software correctness
 
-The final row is intentionally easy for alignment: the spaces differ by an exact rotation. It tests mechanics, not realistic embedding-model equivalence.
+Lightweight CI must run on Python 3.10, 3.12 and 3.13 and include:
 
-## First real-data representation test
+- package installation;
+- full `pytest` suite;
+- fixed-seed hubness regression benchmark.
 
-`benchmarks/digits_coordinate_benchmark.py` uses the 1,797 handwritten images shipped with `sklearn.datasets.load_digits`. This is **real observed data**, but deliberately not described as a neural embedding-model benchmark.
+A green unit test is **not** scientific evidence for model quality.
 
-The same logical image is represented in two genuinely different coordinate systems:
+### Class M — controlled mechanism tests
 
-- legacy: normalized raw 8x8 pixels, 64 dimensions;
-- target: HOG descriptors, 324 dimensions.
+Synthetic or deliberately corrupted experiments answer questions such as:
 
-A fixed split uses 1,400 documents and 397 held-out query images. Query images are never transition anchors. The benchmark measures both exact HOG-neighborhood imitation and a task-level relevance metric: whether retrieved documents have the same digit label as the query.
+- can hubness correction suppress constructed black holes?
+- can cycle consistency expose a corrupt transition?
+- can a contract kill deliberate semantic mutants?
+- can repair planning enrich known corrupt objects?
 
-| Anchor coverage | Global same-digit precision@10 | Local atlas same-digit precision@10 | Global HOG-neighbor overlap@10 | Local HOG-neighbor overlap@10 |
+They prove an implementation can react to a known constructed condition. They do not establish production superiority.
+
+### Class R — real observed representations
+
+Examples:
+
+- Digits raw pixels ↔ HOG;
+- SciFact MiniLM ↔ BGE;
+- SciFact BGE dense ↔ BM25 sparse.
+
+These require held-out query/data splits and task relevance metrics where available.
+
+### Class C — statistical certification
+
+A certificate must distinguish:
+
+- selection data;
+- certification data;
+- final held-out evaluation;
+- target SLA;
+- `delta` / confidence budget;
+- threshold-selection procedure;
+- multiplicity/optional-stopping treatment;
+- abstention cases.
+
+A metric such as AUC is useful for discrimination but is **not itself a risk certificate**.
+
+### Class N — negative/falsification evidence
+
+Failed hypotheses are published alongside positive results. Current examples:
+
+- local BGE→MiniLM mapping loses to global;
+- deterministic Witness sparsification does not dominate random held-out;
+- discriminative fixed Diagnostic Panels overfit and reach 0% held-out regression recall.
+
+## 2. Historical SMA/SCF mechanism evidence
+
+### Hubness stress test
+
+Fixed-seed synthetic result:
+
+- exact cosine precision@10: **0.6300**;
+- SMA precision@10: **0.8519**;
+- cosine injected hubs/query: **3.3687**;
+- SMA injected hubs/query: **0.0000**.
+
+Interpretation: validates the hub-robust ranking mechanism under a constructed black-hole condition only.
+
+### Coordinate Fabric deterministic mechanisms
+
+`coordinate_fabric_benchmark.py`:
+
+| mechanism | baseline | SCF |
+|---|---:|---:|
+| region-dependent warp, held-out pair cosine | global 0.7042 | local 0.9414 |
+| target index 25% migrated, overlap@10 vs legacy oracle | new-only 0.2080 | fabric 0.8460 |
+| transition cycle | good ~1.0000 | corrupted -0.0760 |
+| exact-rotation toy, 20% direct vectors | direct coverage 0.20 | virtual coverage 1.00 |
+
+These are mechanism tests. The real neural result later falsifies any claim that local translation is generally superior.
+
+## 3. Real Digits representation evidence
+
+### Pixels ↔ HOG coordinate migration
+
+Dataset: `sklearn.datasets.load_digits`.
+
+- legacy: normalized raw 8×8 pixels, 64-D;
+- target: HOG descriptors, 324-D;
+- 1,400 indexed images;
+- 397 held-out queries.
+
+| anchor coverage | global same-digit p@10 | local same-digit p@10 | global target-neighbor overlap@10 | local overlap@10 |
 |---:|---:|---:|---:|---:|
-| 5% | 0.4418 | 0.4889 | 0.0720 | 0.0806 |
-| 10% | 0.4970 | 0.6259 | 0.0856 | 0.1217 |
 | 20% | 0.4897 | 0.7353 | 0.0788 | 0.1685 |
 | 40% | 0.4741 | 0.7776 | 0.0811 | 0.2161 |
 | 70% | 0.4280 | 0.8526 | 0.0741 | 0.2809 |
 
-Native target HOG retrieval has same-digit precision@10 **0.8343**; native pixel retrieval has **0.9476**.
+Lesson: downstream relevance and exact target-neighbor imitation are distinct metrics.
 
-This result is both encouraging and cautionary. The local atlas consistently beats one global map on the task-level relevance metric and improves as anchor coverage grows. However, exact target-neighborhood overlap remains low even at high anchor coverage. Therefore **target-ranking imitation is not enough as the only success metric, and task relevance cannot be ignored either**. Real embedding-model experiments must report both.
+### Semantic ABI: application vs legacy behavior
 
-The optional benchmark dependencies are installed with `pip install -e '.[bench]'`.
+Application contract:
 
-## Real paired-model benchmark harness
+- pixels ~0.980;
+- HOG ~0.911;
+- corrupted HOG ~0.813.
 
-`benchmarks/npz_upgrade_benchmark.py` accepts a database-neutral NPZ:
+Legacy-behavior contract:
 
-- `old_docs`: N x D_old;
-- `new_docs`: N x D_new;
-- `new_queries`: Q x D_new.
+- pixels 1.000;
+- HOG ~0.711;
+- corrupted HOG ~0.610.
 
-It samples paired document anchors, fits both a local transition atlas and a global Procrustes baseline, then evaluates retrieval against the exact full-new-space top-k oracle.
+This is the mechanism evidence for separating application semantics from exact old ranking behavior.
 
-Required future additions:
+### Active repair
 
-- query relevance labels where available, not only full-new nearest-neighbor imitation;
-- multiple random anchor samples and confidence intervals;
-- domain-held-out anchors;
-- multilingual and cross-modal model pairs;
-- 1%, 5%, 10%, 25%, 50% migration coverage curves;
-- p50/p95/p99 latency and memory;
-- transition fit cost vs full re-embedding cost;
-- failure calibration: observed retrieval quality as a function of declared confidence.
+10% deliberate identity corruption:
 
-## Strong baselines
+| review budget | truly corrupt among selected | random expectation |
+|---:|---:|---:|
+| 25 | 68% | 10% |
+| 50 | 54% | 10% |
+| 100 | 37% | 10% |
+| 140 | 33.6% | 10% |
 
-At minimum:
+Next required metric: certified-coverage gained per unit cost, not only corrupt-object precision.
 
-1. full re-embedding + exact cosine (quality ceiling for a chosen target encoder);
-2. legacy exact / ANN retrieval;
-3. global orthogonal Procrustes;
-4. low-rank affine adapter;
-5. learned residual adapter where training data justifies it;
-6. new-index-only at each migration coverage;
-7. ordinary reciprocal-rank fusion without coverage correction;
-8. SCF local atlas + confidence + coverage correction;
-9. SCF virtual materialization.
+### Semantic Diff
 
-Where practical, candidate generation should be measured with Qdrant/HNSW and DiskANN rather than NumPy exact search.
+- all disagreement questions label-resolvable: ~11.7%;
+- top 25 proposed: 68%;
+- top 50: 60%.
 
-## Ablations
+Next gate: human/domain judgments rather than digit labels as a proxy oracle.
 
-Remove one component at a time:
+### Mutation adequacy
 
-- local maps -> global map only;
-- held-out confidence -> train-fit quality;
-- route confidence -> uniform route weight;
-- coverage correction -> naive RRF;
-- cycle audit;
-- cell dispersion;
-- cross-space consensus;
-- hubness correction in the underlying SMA retriever.
+Current controlled families:
 
-A component that repeatedly fails to improve quality, safety, cost or explainability should be removed.
+- identity permutation;
+- local collapse;
+- hub pull;
+- coordinate noise.
 
-## Kill / narrow criteria
+The tested contracts kill all four families in the current Digits experiment. Localization remains materially weaker than global detection.
 
-The broad SCF hypothesis should be narrowed if one or more of these persist across representative model pairs:
+## 4. Real neural SciFact gate
 
-- local transitions do not materially beat simple global adapters;
-- useful transition confidence cannot be calibrated from affordable anchor counts;
-- transported retrieval loses too much target-model quality before economically meaningful migration savings appear;
-- virtual materialization produces unstable neighborhoods under modest domain shift;
-- added latency/complexity dominates the saved re-embedding work;
-- graph composition compounds error too quickly for routes longer than one hop.
+Dataset: `mteb/scifact`.
 
-A negative result is useful: the protocol can still collapse to a simpler audited one-hop migration adapter if that is what the evidence supports.
+- 1,800 documents;
+- 500 train queries;
+- 200 held-out test queries;
+- legacy: MiniLM;
+- candidate: BGE-small-en-v1.5.
+
+### Direct retrieval
+
+| implementation | nDCG@10 | Recall@10 | Hit@10 |
+|---|---:|---:|---:|
+| MiniLM | 0.7387 | 0.8515 | 0.8600 |
+| BGE | **0.7821** | **0.8840** | **0.8900** |
+
+### Semantic ABI
+
+- contract clauses: **650**;
+- exact digest: `59d34bc071273dbaa06ce03df1a3b66a2686b6b8c5f240bb49075054909c7b9f`;
+- MiniLM ABI: ~0.9035;
+- BGE ABI: **0.9467**;
+- logical-object coverage: ~41.6%;
+- held-out support-aware failure-risk AUC: **0.7875**.
+
+### Dense↔sparse portability
+
+The exact same contract is audited against BM25 through `CallbackSemanticOracle`.
+
+| implementation | ABI | nDCG@10 | Recall@10 | Hit@10 |
+|---|---:|---:|---:|---:|
+| BGE dense | **0.9467** | **0.7821** | **0.8840** | **0.8900** |
+| BM25 sparse | 0.8913 | 0.7335 | 0.8228 | 0.8400 |
+
+BM25 evaluates 650/650 clauses with zero missing clauses. The benchmark must fail if the sparse reconstruction produces a different contract digest from the dense evidence.
+
+This is one inter-paradigm gate, not universal representation independence.
+
+### SCF global/local ablation
+
+BGE→MiniLM target-neighbor overlap@10:
+
+- global: **0.4745**;
+- local: **0.3680**.
+
+Held-out transition validation also favors global. Any benchmark/report that presents local SCF as the default is stale.
+
+## 5. Rollout-risk certification protocol
+
+Calibration and test queries must remain separated.
+
+### Simultaneous family baseline
+
+`calibrate_semantic_risk()`:
+
+- selection proposes a small threshold family;
+- independent certification evaluates the family;
+- one-sided Chernoff/KL bounds;
+- union correction across candidates.
+
+### Pre-registered exact baseline
+
+`calibrate_semantic_risk_preregistered()`:
+
+- selection chooses one rule under internal slack;
+- the rule is frozen before certification labels are observed;
+- certification tests exactly that rule using a one-sided exact binomial bound;
+- failure means abstention, not post-hoc threshold switching.
+
+### SciFact risk curve
+
+`delta = 0.10`:
+
+| requested failure SLA | simultaneous family | pre-registered exact |
+|---:|---|---|
+| 5% | no | no |
+| 10% | no | no |
+| 15% | no; upper ~19.19% | **yes; upper ~13.16%** |
+| 20% | yes | yes |
+
+15% pre-registered held-out result:
+
+- accepted 197/200 = **98.5%**;
+- realized accepted failure rate ~**10.15%**.
+
+Required future baselines:
+
+- Learn-Then-Test;
+- Adaptive LTT;
+- conformal/selective risk control;
+- confidence sequences / e-processes;
+- shift-aware/reweighted calibration.
+
+Required stress axes:
+
+- calibration sample size;
+- domain/language/time shift;
+- sparse slices;
+- score calibration drift;
+- support/OOD shift;
+- multiple random seeds.
+
+## 6. Contract-cost experiments
+
+### Failed: deterministic Witness sparsification
+
+Stress protocol:
+
+- source contract: 1,500 clauses;
+- changed object IDs;
+- fault footprints 3%, 5%, 10%;
+- changed severities;
+- unseen coherent-directional-drift family;
+- true negative controls defined as micro-drifts the full contract itself does not detect.
+
+Representative held-out results:
+
+| fixed clauses | TPR | FPR |
+|---:|---:|---:|
+| 10 | 62.5% | 0% |
+| 25 | 100% | 28.6% |
+| 100 | 100% | 42.9% |
+
+Conclusion: fixed sparsification is not a promoted mechanism.
+
+### Failed: discriminative Diagnostic Panel
+
+The panel perfectly separates training regressions from approved micro-drifts and then produces **0% held-out TPR** across budgets 5–100 clauses.
+
+Conclusion: item discrimination without broad semantic/topological coverage overfits object-local failure locations.
+
+### Promising: Progressive Semantic Audit
+
+Policy:
+
+- every hard clause exhaustive;
+- soft clauses sampled proportional to weight;
+- cached evaluation;
+- predeclared batch looks;
+- exact-binomial bounds with error budget split over tails/looks;
+- early PASS/FAIL on weighted soft-clause violation SLA;
+- exact fallback if inconclusive.
+
+Digits benchmark:
+
+- contract: 1,500 clauses;
+- scenarios: baseline + four corruptions;
+- SLAs: 2%, 5%, 10%;
+- total decisions: 15;
+- agreement with exhaustive decision: **15/15**;
+- early/non-full decisions: **12/15**;
+- mean unique-clause fraction among early decisions: **7.17%**.
+
+Near-boundary cases fall back to all 1,500 clauses.
+
+Next benchmark axes:
+
+1. 10k/100k/1M clauses;
+2. non-uniform weights;
+3. expensive remote-oracle clauses;
+4. heterogeneous costs;
+5. semantic slices/strata;
+6. finite-population sampling without replacement;
+7. confidence-sequence/e-process stopping;
+8. adversarial sparse faults;
+9. hard-clause fractions;
+10. expected wall-clock/cost savings rather than clause counts alone.
+
+## 7. Real integration requirements
+
+Before any production claim, run candidate generation/audit through mature systems:
+
+- Qdrant;
+- pgvector;
+- Elasticsearch/BM25 + dense hybrid;
+- Vespa or late-interaction equivalent;
+- HNSW/DiskANN where useful.
+
+Report:
+
+- p50/p95/p99 retrieval latency;
+- p50/p95/p99 audit latency;
+- memory/artifact size;
+- API/GPU/token cost;
+- direct vs virtual representation status;
+- fallback fraction;
+- full re-embedding cost avoided;
+- repair-to-certified-coverage economics.
+
+## 8. Evidence freshness rules
+
+Published numbers must be bound to:
+
+- GitHub Actions workflow run ID;
+- workflow head SHA;
+- artifact SHA-256 digest;
+- Git blob SHA of evidence-sensitive algorithms and benchmark scripts.
+
+`docs/evidence-manifest.json` is the machine-readable source. CI recalculates the Git blob SHA locally and fails when an evidence-sensitive source changes without refreshed evidence.
+
+Changing documentation alone should not invalidate an experiment. Changing an algorithm or its benchmark **must**.
+
+## 9. Falsification rules
+
+Narrow or kill a mechanism when representative data shows:
+
+- it fails to beat a simpler baseline;
+- its uncertainty/risk signal is not predictive held-out;
+- safe certified coverage is economically useless;
+- its apparent gain disappears across model/dataset seeds;
+- its audit/maintenance cost approaches exhaustive evaluation;
+- it relies on current-model behavior masquerading as application truth.
+
+A negative benchmark is a successful research result when it removes unjustified complexity.
