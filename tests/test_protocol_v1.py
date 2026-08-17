@@ -84,21 +84,25 @@ def test_directional_score_does_not_require_reverse_pair():
 
 
 def test_maxsim_is_directional_and_explainable():
-    q = np.asarray([[1.0, 0.0], [0.0, 1.0]], dtype=np.float32)
-    d = np.asarray([[1.0, 0.0], [0.6, 0.8]], dtype=np.float32)
+    # q has two opposing tokens while d has one. Query->document MaxSim sums
+    # +1 and -1 (=0); reversing the operands has a single query token whose
+    # best match is +1. The asymmetry is therefore structural, not numerical.
+    q = np.asarray([[1.0, 0.0], [-1.0, 0.0]], dtype=np.float32)
+    d = np.asarray([[1.0, 0.0]], dtype=np.float32)
     forward = maxsim_score(q, d)
     reverse = maxsim_score(d, q)
-    assert forward != reverse
-    assert np.isclose(forward, 1.8, atol=1e-6)
+    assert np.isclose(forward, 0.0, atol=1e-6)
+    assert np.isclose(reverse, 1.0, atol=1e-6)
 
     oracle = LateInteractionOracleV1(
         {"q": q},
-        {"a": d, "b": np.asarray([[-1.0, 0.0], [0.0, -1.0]], dtype=np.float32)},
+        {"a": d, "b": np.asarray([[0.0, 1.0]], dtype=np.float32)},
         rankings={"q": ("a", "b")},
         implementation_id="maxsim-test",
     )
     explanation = oracle.explain("q", "a")
-    assert explanation.query_token_best_document_token == (0, 1)
+    assert explanation.query_token_best_document_token == (0, 0)
+    assert np.allclose(explanation.query_token_scores, (1.0, -1.0), atol=1e-6)
     assert np.isclose(explanation.total_score, forward)
     assert oracle.manifest.score_directionality == "asymmetric"
 
