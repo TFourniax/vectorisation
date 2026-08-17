@@ -17,6 +17,7 @@ from .core import AtlasIndex, AtlasRecord, SearchHit, SearchPolicy
 from .drift import DriftPoint, DriftReport, compare_indexes
 from .embed import FeatureHashEmbedder
 from .fabric import FabricRecord, SemanticCell, SemanticFabric, SpaceSpec
+from .lifecycle import AssessmentDelta, ChangeAssessment, SemanticChangeManager, compare_assessments
 from .repair import (
     CoverageRepairCandidate,
     CoverageRepairPlan,
@@ -76,4 +77,8 @@ __all__ = [
     "CertifiedSemanticABIGate",
     "bernoulli_kl_upper_bound",
     "calibrate_semantic_risk",
+    "ChangeAssessment",
+    "AssessmentDelta",
+    "SemanticChangeManager",
+    "compare_assessments",
 ]
