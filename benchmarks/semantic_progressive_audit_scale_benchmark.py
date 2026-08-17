@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import json
+from pathlib import Path
 import time
 
 import numpy as np
@@ -38,8 +39,6 @@ class ProceduralOracle:
         return value if 0 <= value < self.count else None
 
     def _broken(self, index: int) -> bool:
-        # Multiplicative hashing spreads violations across the contract and
-        # avoids making them contiguous or aligned with the weight cycle.
         value = (index * 2654435761 + self.seed * 2246822519) % 1_000_003
         return value < self.cutoff
 
@@ -64,7 +63,6 @@ class ProceduralOracle:
         return 0.0
 
     def neighbors(self, anchor: str, k: int):
-        # Scale contract uses only triplets; no ranked neighborhood is needed.
         return ()
 
 
@@ -162,9 +160,6 @@ def main() -> None:
             (0.20, 0.05),
             (0.10, 0.05),
         ]
-        # One near-boundary fallback case is enough to validate exact fallback;
-        # doing it at every large size would benchmark Python object traversal
-        # rather than sequential-audit sample efficiency.
         if size == min(sizes):
             cases.append((0.05, 0.05))
         for case_index, (violation_rate, sla) in enumerate(cases):
