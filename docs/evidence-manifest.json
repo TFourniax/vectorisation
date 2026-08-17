@@ -132,11 +132,29 @@
       }
     },
     "multidataset-cross-paradigm-v1": {
-      "status": "pending",
-      "workflow": "multidataset-semantic-abi / multidataset-semantic-abi-parallel",
+      "status": "promoted",
+      "workflow": "multidataset-semantic-abi",
       "workflow_run_id": 32027885908,
-      "parallel_workflow_run_id": 32030011004,
-      "note": "FiQA and NFCorpus have completed; SciFact is still running. No cross-dataset predictive-superiority claim is promoted until all required artifacts are available."
+      "workflow_head_sha": "f31765e3069e633eebf4765fb0b73776b5226e93",
+      "artifact_name": "multidataset-semantic-abi-evidence",
+      "artifact_sha256": "sha256:975e3cb2bc06f144f92192b8fcfbf9a8365e097176c3a3c6168f54b806c09175",
+      "claims": [
+        "SciFact/NFCorpus/FiQA application contracts execute across dense MiniLM/BGE, sparse BM25 and BGE+BM25 hybrid implementations",
+        "Semantic ABI is strongly associated with held-out retrieval quality across natural and controlled-degradation variants",
+        "the preregistered claim that ABI is a generally superior aggregate nDCG predictor to ordinary train-query nDCG is not supported",
+        "mean per-dataset all-variant Spearman is 0.9697 for ABI versus 0.9757 for train nDCG",
+        "pooled all-variant delta Spearman versus BGE is 0.9573 for ABI versus 0.9724 for train nDCG",
+        "natural-only evidence is small and near parity rather than proof of predictive superiority"
+      ],
+      "replication": {
+        "parallel_workflow_run_id": 32030011004,
+        "note": "Independent per-dataset jobs reproduced the qualitative narrowing result; NFCorpus/FiQA use different random query seeds from the canonical sequential run."
+      },
+      "source_blobs": {
+        "benchmarks/semantic_abi_multidataset_benchmark.py": "77f05066738c16c5929ea6fe0f30fcd7eeb1aafe",
+        "src/semantic_atlas/contracts.py": "10613bf566dd3a27a61c78361f98ef41f37b958a",
+        "src/semantic_atlas/oracle.py": "0608d587f2a94d45d8541088cd2dfd6e4dc58553"
+      }
     }
   }
 }
