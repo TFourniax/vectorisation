@@ -1,0 +1,31 @@
+name: multidataset-semantic-abi
+
+on:
+  workflow_dispatch:
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: semantic-abi-multidataset-minilm-bge-v1
+      - run: python -m pip install --upgrade pip
+      - run: pip install -e '.[dev]' sentence-transformers datasets huggingface-hub
+      - name: Run canonical sequential replication
+        env:
+          HF_HUB_DISABLE_TELEMETRY: "1"
+          TOKENIZERS_PARALLELISM: "false"
+        run: python benchmarks/semantic_abi_multidataset_benchmark.py --datasets scifact,nfcorpus,fiqa --train-queries 140 --test-queries 100 --max-docs 5000 --seed 271 --output artifacts/multidataset_semantic_abi.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: multidataset-semantic-abi-evidence
+          path: artifacts/multidataset_semantic_abi.json
+          if-no-files-found: error
