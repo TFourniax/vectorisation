@@ -18,6 +18,14 @@ from .drift import DriftPoint, DriftReport, compare_indexes
 from .embed import FeatureHashEmbedder
 from .fabric import FabricRecord, SemanticCell, SemanticFabric, SpaceSpec
 from .repair import RepairCandidate, RepairPlan, plan_repairs
+from .risk_control import (
+    CalibrationEvent,
+    CertifiedGateDecision,
+    CertifiedSemanticABIGate,
+    RiskCertificate,
+    bernoulli_kl_upper_bound,
+    calibrate_semantic_risk,
+)
 from .transition_io import load_transition, save_transition
 
 __all__ = [
@@ -52,4 +60,10 @@ __all__ = [
     "RepairCandidate",
     "RepairPlan",
     "plan_repairs",
+    "CalibrationEvent",
+    "RiskCertificate",
+    "CertifiedGateDecision",
+    "CertifiedSemanticABIGate",
+    "bernoulli_kl_upper_bound",
+    "calibrate_semantic_risk",
 ]
