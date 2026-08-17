@@ -82,6 +82,57 @@ class CallbackSemanticOracle:
         return tuple(self.neighbors_fn(anchor, int(k)))[: max(0, int(k))]
 
 
+def evaluate_contract_clause(
+    contract: SemanticContract,
+    oracle: SemanticOracle,
+    clause_index: int,
+    *,
+    implementation: str | None = None,
+) -> ClauseResult | None:
+    """Evaluate one contract clause while preserving its original clause index.
+
+    ``None`` means at least one logical object required by the clause is absent
+    from the oracle. Full audits retain their historical missing-clause
+    semantics; progressive audit policies may deliberately treat missing soft
+    clauses more conservatively.
+    """
+    index = int(clause_index)
+    if index < 0 or index >= len(contract.clauses):
+        raise IndexError(index)
+    clause = contract.clauses[index]
+    if any(not oracle.contains(object_id) for object_id in clause.objects):
+        return None
+
+    label = implementation or getattr(oracle, "implementation", "semantic-oracle")
+    weight = max(0.0, float(clause.weight))
+    if isinstance(clause, TripletClause):
+        delta = float(oracle.similarity(clause.anchor, clause.positive) - oracle.similarity(clause.anchor, clause.negative))
+        passed = delta >= clause.margin
+        scale = max(0.05, abs(clause.margin) + 0.10)
+        score = 1.0 if passed else float(np.clip(0.5 + 0.5 * np.tanh((delta - clause.margin) / scale), 0.0, 0.499999))
+        return ClauseResult(index, clause.kind, score, passed, clause.hard, weight, clause.objects, {"delta": delta, "required_margin": clause.margin, "oracle": label})
+
+    if isinstance(clause, NeighborClause):
+        candidate_k = clause.candidate_k or len(clause.expected)
+        candidate_k = max(1, int(candidate_k))
+        got = set(oracle.neighbors(clause.anchor, candidate_k))
+        expected = set(clause.expected)
+        recall = 1.0 if not expected else len(expected & got) / len(expected)
+        passed = recall >= clause.min_recall
+        score = float(np.clip(recall / max(clause.min_recall, _EPS), 0.0, 1.0)) if not passed else 1.0
+        return ClauseResult(index, clause.kind, score, passed, clause.hard, weight, clause.objects, {"recall": recall, "required_recall": clause.min_recall, "candidate_k": candidate_k, "oracle": label})
+
+    if isinstance(clause, MutualNeighborClause):
+        left_neighbors = set(oracle.neighbors(clause.left, clause.k))
+        right_neighbors = set(oracle.neighbors(clause.right, clause.k))
+        directions = int(clause.right in left_neighbors) + int(clause.left in right_neighbors)
+        score = directions / 2.0
+        passed = directions == 2
+        return ClauseResult(index, clause.kind, score, passed, clause.hard, weight, clause.objects, {"reciprocal_directions": directions, "k": int(clause.k), "oracle": label})
+
+    raise TypeError(f"unsupported clause: {type(clause)!r}")
+
+
 def audit_contract(
     contract: SemanticContract,
     oracle: SemanticOracle,
@@ -112,42 +163,13 @@ def audit_contract(
             risk_denominator[object_id] = risk_denominator.get(object_id, 0.0) + result.weight * factor
 
     for clause_index, clause in enumerate(contract.clauses):
-        if any(not oracle.contains(object_id) for object_id in clause.objects):
+        result = evaluate_contract_clause(contract, oracle, clause_index, implementation=label)
+        if result is None:
             missing += 1
             if clause.hard:
                 hard_pass = False
             continue
-
-        weight = max(0.0, float(clause.weight))
-        if isinstance(clause, TripletClause):
-            delta = float(oracle.similarity(clause.anchor, clause.positive) - oracle.similarity(clause.anchor, clause.negative))
-            passed = delta >= clause.margin
-            scale = max(0.05, abs(clause.margin) + 0.10)
-            score = 1.0 if passed else float(np.clip(0.5 + 0.5 * np.tanh((delta - clause.margin) / scale), 0.0, 0.499999))
-            register(ClauseResult(clause_index, clause.kind, score, passed, clause.hard, weight, clause.objects, {"delta": delta, "required_margin": clause.margin, "oracle": label}))
-            continue
-
-        if isinstance(clause, NeighborClause):
-            candidate_k = clause.candidate_k or len(clause.expected)
-            candidate_k = max(1, int(candidate_k))
-            got = set(oracle.neighbors(clause.anchor, candidate_k))
-            expected = set(clause.expected)
-            recall = 1.0 if not expected else len(expected & got) / len(expected)
-            passed = recall >= clause.min_recall
-            score = float(np.clip(recall / max(clause.min_recall, _EPS), 0.0, 1.0)) if not passed else 1.0
-            register(ClauseResult(clause_index, clause.kind, score, passed, clause.hard, weight, clause.objects, {"recall": recall, "required_recall": clause.min_recall, "candidate_k": candidate_k, "oracle": label}))
-            continue
-
-        if isinstance(clause, MutualNeighborClause):
-            left_neighbors = set(oracle.neighbors(clause.left, clause.k))
-            right_neighbors = set(oracle.neighbors(clause.right, clause.k))
-            directions = int(clause.right in left_neighbors) + int(clause.left in right_neighbors)
-            score = directions / 2.0
-            passed = directions == 2
-            register(ClauseResult(clause_index, clause.kind, score, passed, clause.hard, weight, clause.objects, {"reciprocal_directions": directions, "k": int(clause.k), "oracle": label}))
-            continue
-
-        raise TypeError(f"unsupported clause: {type(clause)!r}")
+        register(result)
 
     object_risk = {
         object_id: float(np.clip(risk_numerator.get(object_id, 0.0) / max(risk_denominator.get(object_id, 0.0), _EPS), 0.0, 1.0))
