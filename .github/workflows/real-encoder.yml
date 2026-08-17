@@ -7,6 +7,7 @@ on:
       - agent/semantic-manifold-atlas
     paths:
       - benchmarks/real_encoder_scifact_benchmark.py
+      - benchmarks/evidence_gated_transition_npz.py
       - .github/workflows/real-encoder.yml
 
 jobs:
@@ -41,6 +42,13 @@ jobs:
           --delta 0.10
           --output artifacts/real_encoder_report.json
           --npz artifacts/scifact_pair.npz
+      - name: Validate global-vs-local complexity selection
+        run: >-
+          python benchmarks/evidence_gated_transition_npz.py
+          artifacts/scifact_pair.npz
+          --anchor-fraction 0.20
+          --k 10
+          --output artifacts/evidence_gated_transition.json
       - name: Upload benchmark evidence
         uses: actions/upload-artifact@v4
         with:
