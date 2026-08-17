@@ -1,183 +1,307 @@
-# Roadmap: from vector retrieval to semantic change management
+# Roadmap — semantic change control, evidence first
 
-The roadmap is evidence-gated. Code does not complete a phase; the phase completes only when its hypothesis survives the attached falsification gate.
+The roadmap is evidence-gated. **Code does not complete a phase; surviving a falsification gate does.** Negative results change the architecture instead of being hidden.
 
-## Phase 0 — Semantic Manifold Atlas — implemented reference kernel
+See [`CURRENT_STATUS.md`](CURRENT_STATUS.md) for the exact dated evidence.
 
-- overlapping local semantic charts;
-- mutual-kNN topology, hubness and density diagnostics;
-- CSLS-inspired hub-robust ranking;
-- optional multi-vector facet late interaction;
-- local 3-D coordinates for inspection only;
-- `bridge`, `boundary`, chart nerve graph;
-- hybrid SQLite/vector persistence;
-- deterministic black-hole/hubness stress benchmark.
+## Track A — historical retrieval/migration research
 
-## Phase 1 — Semantic Coordinate Fabric — implemented research kernel
-
-- logical identity independent of embedding identity;
-- explicit representation-space registry;
-- rectangular scaled-Procrustes baseline;
-- piecewise local transition atlases;
-- held-out global + local transition confidence;
-- support-radius/OOD confidence decay;
-- query-dependent route selection across representation spaces;
-- cycle/cocycle consistency audits;
-- partial-migration search with coverage-aware fusion;
-- semantic cells: center + dispersion + provenance;
-- virtual target-space materialization;
-- representation `fault_lines` and coordinate-aware drift;
-- portable transition artifact format v2.
-
-Prior-art review materially narrowed novelty claims here: cross-model translation, local consistency, composable translation and embedding-independent vector-database IRs are already active research areas.
-
-## Phase 2 — Semantic ABI — implemented V0.3 hypothesis
-
-Make the **meaning required by the application** a stable interface above all representation implementations.
+### A0. Semantic Manifold Atlas — implemented mechanism kernel
 
 Implemented:
 
-- coordinate-free ordinal triplet clauses;
-- critical-neighborhood clauses;
-- reciprocal-neighbor clauses;
-- hard/soft requirements and provenance/source fields;
-- separate application-semantic vs legacy-behavior contracts;
-- canonical contract digests;
-- tamper-evident hash-chained contract ledger;
-- per-object violation/risk field;
-- query-local risk interpolation;
-- `SemanticABIGate` for region-wise rollout/fallback;
-- real-data digits/HOG mechanism benchmark.
+- overlapping local charts;
+- mutual-kNN topology;
+- hubness/density and intrinsic-dimension diagnostics;
+- CSLS-inspired hub-robust scoring;
+- facet late interaction;
+- `bridge`, `boundary`, chart nerve graph;
+- hybrid SQLite/vector persistence.
 
-Critical falsification questions:
+Evidence: strong synthetic hubness stress result.  
+Status: **supporting research**, not a claim to replace mature ANN engines.
 
-- does ABI score predict downstream failures better than ordinary held-out evaluation?
-- can useful application contracts be built from a tiny fraction of a corpus?
-- are local risk estimates calibrated enough for deployment decisions?
-- do contracts transfer across dense, sparse, graph and multimodal implementations?
-- can application semantics remain stable without freezing obsolete ranking quirks?
+### A1. Semantic Coordinate Fabric — implemented, novelty narrowed
 
-## Phase 3 — active semantic repair — implemented transparent baseline, research next
+Implemented:
 
-Close the loop:
+- global scaled Procrustes;
+- local transition atlases;
+- held-out global/local diagnostics;
+- query-dependent routes and cycle checks;
+- partial migration fusion;
+- semantic cells and virtual materialization;
+- drift/fault-line diagnostics;
+- transition format v2;
+- `EvidenceGatedTransition`.
 
-```text
-Contract -> Audit -> Gate -> Repair -> Re-certify
-```
+Real neural result on BGE→MiniLM SciFact:
 
-Current baseline:
+- global target-neighbor overlap@10: **0.4745**;
+- local atlas: **0.3680**;
+- held-out selector chooses **global**.
 
-- priority = semantic risk x violation centrality x diversity;
-- sparse review/re-embedding plan rather than uniform backfill;
-- real-data corruption benchmark shows strong enrichment over random selection at small budgets.
+Status: **local superiority falsified on this pair**. SCF remains migration machinery whose complexity must win a holdout. Cross-model translation/local-composable methods have strong 2025–2027 prior art.
 
-Next research:
+## Track B — Semantic ABI / change-control core
 
-- submodular facility-location selection;
-- Bayesian/active-learning uncertainty reduction;
-- expected certified-surface gain per dollar/token/GPU-second;
-- transition-anchor selection and direct re-embedding selection as one joint optimization;
-- stop conditions: repair until requested semantic SLA, not until 100% corpus backfill;
-- counterfactual repair: identify the smallest observation/transition changes needed to satisfy the contract.
+### B0. Coordinate-free Semantic ABI — first inter-paradigm gate crossed
 
-**Kill rule:** if active repair cannot beat random, uncertainty sampling, or simple highest-risk selection on cost-to-certified-coverage, remove the extra planner complexity.
+Implemented:
 
-## Phase 4 — real neural encoder falsification gate — highest priority
+- ordinal, neighborhood and reciprocal-neighbor clauses;
+- hard/soft requirements, weights and provenance;
+- application-semantic vs legacy-behavior separation;
+- canonical digest and contract ledger;
+- contract linting;
+- per-object risk;
+- `SemanticOracle` abstraction;
+- dense and callback adapters;
+- full and single-clause audit.
 
-Use unrelated encoder families and several datasets; do not optimize around one favorable model pair.
+Real SciFact evidence:
 
-Required axes:
+- exact same **650-clause contract digest** audits BGE dense and BM25 sparse;
+- BGE ABI ~**0.9467**;
+- BM25 ABI ~**0.8913**;
+- BM25 evaluates 650/650 clauses with no vectors exposed.
 
-- text retrieval with relevance labels;
-- multilingual retrieval;
-- image/multimodal retrieval;
-- domain shift and long-tail concepts;
-- dimension changes;
-- model-family changes;
-- partial migration coverage: 1%, 5%, 10%, 25%, 50%, 75%;
-- anchor budgets and domain-held-out anchors.
+Status: **first real dense↔sparse portability gate crossed**.  
+Next gate: repeat with graph/hybrid/late-interaction/multimodal implementations and multiple datasets.
 
-Report separately:
+### B1. Support-aware selective rollout — first neural gate crossed
 
-1. target-neighborhood fidelity;
-2. downstream relevance (nDCG/MRR/Recall);
-3. Semantic ABI score and hard failures;
-4. risk calibration;
-5. certified corpus/query coverage;
-6. active-repair cost-to-certification;
-7. p50/p95/p99 latency;
-8. memory/artifact size;
-9. full re-embedding cost avoided.
+Implemented:
 
-Baselines must include:
+- contract coverage;
+- support/OOD-aware local risk;
+- `CertifiedSemanticABIGate`;
+- global + slice risk portfolios;
+- conservative family-wise Chernoff/KL calibration;
+- single-rule pre-registered exact-binomial calibration.
 
+SciFact evidence:
+
+- held-out failure-risk AUC ~**0.7875**;
+- 10% SLA: both methods correctly abstain;
+- 15% SLA: simultaneous family remains uncertified, pre-registered exact rule certifies upper risk ~**13.16%**;
+- held-out accepted coverage **98.5%**, realized accepted risk ~**10.15%**.
+
+Status: **promising first sample-efficiency result**.  
+Next gates:
+
+1. Learn-Then-Test baseline;
+2. conformal/selective risk-control baselines;
+3. confidence-sequence/e-value baselines;
+4. domain/language/time/configuration shift;
+5. calibration-size curves and required sample complexity.
+
+### B2. Progressive Semantic Audit — first cost gate crossed
+
+Problem: a useful contract may eventually contain tens of thousands or millions of clauses. A fixed tiny subset proved unsafe.
+
+Implemented policy:
+
+- every hard clause evaluated exhaustively;
+- weighted soft clauses sampled with replacement;
+- cached oracle evaluation;
+- predeclared batch looks;
+- exact-binomial upper/lower bounds;
+- global alpha split across looks/tails;
+- early PASS/FAIL for a weighted soft-clause violation-rate SLA;
+- exact full fallback near the boundary.
+
+Digits evidence with 1,500 clauses:
+
+- **15/15** decisions match exhaustive audit;
+- **12/15** finish early;
+- mean unique-clause fraction for early decisions: **7.17%**;
+- near-boundary cases correctly fall back to 100%.
+
+Status: **promoted research mechanism**. Sequential auditing itself has substantial prior art; the research question is whether it makes Semantic ABI audits economically scalable.
+
+Next gates:
+
+1. 10k / 100k / 1M clause replay/synthetic scale;
+2. heterogeneous evaluation costs;
+3. weighted/sliced/stratified sampling;
+4. finite-population without-replacement methods;
+5. confidence sequences / e-processes instead of simple alpha spending;
+6. adversarial sparse-fault simulations;
+7. real remote-oracle latency/cost measurements.
+
+### B3. Contract acquisition — promising, not solved
+
+Implemented:
+
+- `semantic_diff()`;
+- high-value ordinal question generation;
+- provenance-ready clauses.
+
+Digits mechanism evidence:
+
+- all disagreements label-resolvable: ~11.7%;
+- top 25 questions: **68%**;
+- top 50: **60%**.
+
+Next gates:
+
+- human/domain expert study;
+- active preference/query baselines;
+- annotation-cost curves;
+- downstream failure-prediction gain per judgment;
+- anti-model-leakage tests so current retriever quirks are not frozen as truth.
+
+### B4. Contract adequacy — implemented mutation baseline
+
+Implemented semantic mutations:
+
+- identity permutation;
+- local collapse;
+- hub pull;
+- coordinate noise.
+
+Current contracts kill the tested mutation families on Digits, but localization remains materially weaker than detection.
+
+Next gates:
+
+- richer fault families;
+- dense/sparse/graph-specific mutants;
+- contract adequacy threshold for release;
+- relation between mutation score and real downstream regressions.
+
+## Track C — failed compression experiments retained as evidence
+
+### C0. Fixed Semantic Witness Set — **not promoted**
+
+Held-out stress results on a 1,500-clause contract:
+
+- 10 clauses: TPR 62.5%, FPR 0%;
+- 25 clauses: TPR 100%, FPR 28.6%;
+- 100 clauses: TPR 100%, FPR 42.9%.
+
+Random same-size panels remain competitive overall.
+
+Conclusion: a tiny deterministic clause subset is not evidence of semantic equivalence.
+
+### C1. Discriminative fixed Diagnostic Panel — **falsified in current form**
+
+Perfect training discrimination → **0% held-out regression recall** across budgets 5–100.
+
+Conclusion: object-local clauses overfit the location of training faults. Do not revive this approach without a fundamentally different coverage model.
+
+These negative results directly motivated Progressive Semantic Audit.
+
+## Track D — active repair and migration economics
+
+Current repair baselines:
+
+- risk × violation centrality × diversity;
+- cost-aware known-violation coverage.
+
+Digits deliberate corruption evidence:
+
+- 25-object budget: **68%** truly corrupt vs 10% random;
+- 50: **54%**;
+- 100: **37%**.
+
+### Next objective
+
+Replace “corrupt-object precision” with the economically meaningful target:
+
+> **certified semantic coverage gained per euro / token / GPU-second / human-review minute.**
+
+Required baselines:
+
+- random;
+- highest risk;
+- uncertainty only;
+- submodular/facility-location selection;
 - full re-embedding;
-- legacy retrieval;
-- new-index-only under partial coverage;
-- Drift-Adapter-style global adapters;
-- local/composable translation baselines from current literature;
-- naive vs coverage-aware fusion;
-- uniform/random backfill;
-- uncertainty-only and highest-risk repair.
+- partial re-embedding + fallback;
+- joint anchor/re-embedding selection.
 
-## Phase 5 — mature ANN adapters, never needless reinvention
+Kill rule: remove planner sophistication if it does not beat simple policies on cost-to-certified-coverage.
 
-- Qdrant adapter;
-- HNSW adapter;
-- DiskANN adapter;
-- pgvector adapter;
-- filtered-query selectivity sweeps;
-- direct vs virtual vector observability;
-- transition and ABI canaries, quarantine and rollback;
-- query planner using ANN cost + transition risk + ABI risk + coverage.
+## Track E — real infrastructure adapters
 
-Only measured evidence could justify a custom low-level index.
+Do not reimplement ANN.
 
-## Phase 6 — richer semantic invariants
+Priority adapters:
 
-Only when ablations show points/triplets are insufficient:
+1. Qdrant;
+2. pgvector;
+3. Elasticsearch/BM25 + dense hybrid;
+4. Vespa or equivalent hybrid/late-interaction engine;
+5. HNSW/DiskANN benchmark adapters.
 
-- anisotropic/covariance semantic cells;
+Required observability:
+
+- direct vs virtual representation provenance;
+- contract/risk canaries;
+- quarantine/fallback/rollback;
+- p50/p95/p99 query and audit latency;
+- artifact and memory size;
+- backfill cost avoided.
+
+## Track F — richer invariants only when simpler clauses fail
+
+Candidates:
+
+- typed relations/hyperedges;
+- temporal order and freshness;
+- contradiction/contested-semantic regions;
+- provenance/trust requirements;
+- monotonic/domain constraints;
+- multimodal consistency;
 - distributional uncertainty;
-- temporal semantic fields;
-- persistent topological invariants;
-- typed graph/hyperedge clauses;
-- contradictions and contested-semantic regions;
-- provenance/trust propagation;
-- causal hypotheses and counterfactual traversal.
+- topological invariants;
+- causal/counterfactual assertions.
 
-Each richer invariant must buy measurable predictive power per unit of contract/storage complexity.
+Rule: every new clause family must buy measurable downstream predictive power per unit authoring/audit complexity.
 
-## Phase 7 — open Semantic ABI + coordinate protocol
+## Track G — release governance / open interchange
 
-If the evidence survives:
+If multi-system evidence survives:
 
-- immutable model/preprocessing fingerprints;
-- signed contract and transition manifests;
-- clause/interchange schema;
-- contract semantic versioning rules;
-- transition expiry/revocation;
-- audit evidence bundles;
-- calibrated local-risk interchange;
-- direct/virtual observation status;
-- anchor/contract provenance and privacy metadata;
-- conformance suite for vector stores and retrievers.
+- immutable implementation/preprocessing fingerprints;
+- signed Semantic Release Certificates;
+- expiry and revocation;
+- transparency log;
+- reviewer identity and approval policy;
+- contract semantic-versioning rules;
+- evidence bundles;
+- conformance suite for retrievers;
+- representation-neutral clause/interchange schema.
 
-The strategic objective is **representation independence**: an application should declare what semantic behavior it requires, while the underlying implementation remains replaceable.
+The strategic objective is **representation independence under explicit semantic obligations**.
 
-## Phase 8 — semantic substrate for agents and data systems
+## Track H — evidence freshness
 
-Potential query language:
+Documentation itself must become auditable.
 
-- `NEAR(query)` — retrieval;
-- `BRIDGE(a,b)` — semantic/topological path;
-- `BOUNDARY(a,b)` — transition region;
-- `FAULT_LINES(scope)` — representation disagreement;
-- `DRIFT(scope,t1,t2)` — coordinate-aware change;
-- `CERTIFY(implementation, contract)` — semantic ABI audit;
-- `WHY_UNSAFE(query)` — violated clauses and local evidence;
-- `REPAIR(budget)` — cost-aware active repair plan;
-- `MATERIALIZE(target_space)` — virtual coordinates;
-- `MAP(scope)` — topology/contract/risk summary.
+In progress:
 
-The end-state is not “a better vector table”. It is a system where data has **identity, representations, invariants, uncertainty, provenance and controlled semantic evolution**.
+- GitHub Actions artifact digests;
+- `docs/evidence-manifest.json`;
+- source Git-blob fingerprints for evidence-sensitive algorithms/benchmarks;
+- CI failure when those blobs change without regenerated evidence.
+
+Once enabled, a benchmark number cannot remain silently “current” after its implementation changes.
+
+## Current highest-value sequence
+
+1. finish machine-enforced evidence manifest;
+2. replicate SciFact results on several BEIR/MTEB datasets and encoder pairs;
+3. add a third representation paradigm (graph/hybrid/late interaction);
+4. scale Progressive Audit by two to three orders of magnitude;
+5. benchmark LTT / confidence-sequence / shift-aware certification;
+6. connect Qdrant + pgvector + Elasticsearch/Vespa;
+7. measure end-to-end migration/re-certification economics;
+8. only then consider protocol standardization, publication or IP claims.
+
+## End-state hypothesis
+
+The project is no longer aiming for “a better vector table”. The end-state hypothesis is a system in which data has:
+
+**stable identity + replaceable representations + declared invariants + uncertainty/support + evidence-gated rollout + provenance + controlled semantic evolution.**
