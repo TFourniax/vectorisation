@@ -1,241 +1,169 @@
-# Semantic Manifold Atlas
+# Semantic Manifold Atlas / Semantic ABI
 
-**Research toward a semantic data layer that can outlive any one embedding model, vector database, or representation implementation.**
+**Research toward an evidence-gated semantic change-control layer that can outlive any one embedding model, vector database or retrieval implementation.**
 
-A vector is not meaning. It is one coordinate assigned to a logical object by one model at one time.
+> A vector is not meaning. It is one representation emitted by one implementation at one point in time.
 
-This repository now investigates three layers:
-
-1. **Semantic Manifold Atlas (SMA)** — topology-aware retrieval over overlapping local semantic charts rather than treating the corpus as unrelated points.
-2. **Semantic Coordinate Fabric (SCF)** — interoperability between different representation spaces through audited local transitions, uncertainty and migration-time routing.
-3. **Semantic ABI** — coordinate-free, versioned invariants of the meaning an application actually requires, so a new representation can be certified or rejected independently of whether it reproduces the old coordinates.
-
-The intended architecture is a semantic control layer **above** mature ANN engines such as Qdrant, DiskANN, HNSW or pgvector—not a reinvention of their low-level indexing work.
-
-> SQL still belongs in the control plane for transactions, constraints, metadata and logical identity. SMA does **not** compress knowledge to XYZ: local 3-D coordinates are inspection views only; full-dimensional representations remain retrieval coordinates.
-
-## The key abstraction shift
-
-Traditional vector infrastructure effectively couples:
+The project started as an experiment in topology-aware vector retrieval. The strongest surviving direction is now broader:
 
 ```text
-logical object -> embedding model -> vector -> index
+stable logical objects
+        |
+   Semantic ABI
+(versioned invariants)
+        |
+  SemanticOracle
+ dense / sparse / graph / hybrid / remote
+        |
+ audit + support + risk
+        |
+ rollout / fallback / repair
+        |
+ reproducible release evidence
 ```
 
-The research direction here separates them:
+The intended role is **above** mature retrieval/index engines such as Qdrant, HNSW, DiskANN, pgvector, Elasticsearch or Vespa—not to reimplement their low-level ANN work. SQL remains appropriate for transactions, constraints, metadata and logical identity.
 
-```text
-                         Semantic ABI
-                 meaning / behavior contracts
-                           |
-                    stable object ID
-                 /         |          \
-          observation A  observation B  graph/sparse/etc.
-               |             |
-            space A <== Semantic Coordinate Fabric ==> space B
-               \             /
-                mature ANN / retrieval engines
-```
+**Current source of truth:** [`docs/CURRENT_STATUS.md`](docs/CURRENT_STATUS.md). It records what is implemented, what has real evidence, what has been falsified, and the next research gates.
 
-A candidate model can therefore change geometry substantially yet still pass the application contract. Conversely, a geometrically well-aligned model can be blocked if it violates a critical semantic invariant.
+## What currently survives the evidence
 
-## Phase 0 — Semantic Manifold Atlas
+### Semantic ABI
 
-The original kernel includes:
+`SemanticContract` expresses coordinate-free requirements over stable logical IDs:
 
-- overlapping local charts with local PCA inspection coordinates;
-- local intrinsic-dimension estimates;
-- mutual-kNN topology;
-- hubness and density diagnostics;
-- CSLS-inspired robust scoring;
-- optional multi-vector facet late interaction;
-- multi-scale/coarse routing;
-- provenance and confidence in result evidence;
-- `bridge(A, B)` for topological paths;
-- `boundary(A, B)` for transition regions;
-- a chart-overlap nerve graph.
+- ordinal assertions such as `A must prefer B over C`;
+- critical-neighborhood survival;
+- reciprocal-neighbor relations;
+- hard/soft requirements, weights and provenance;
+- canonical SHA-256 identity, contract linting and a hash-chained history.
 
-Fixed-seed synthetic hubness stress test:
+Application semantics are deliberately separate from legacy-behavior compatibility. A new retriever may change old rankings substantially while preserving the meaning the application actually requires.
 
-- exact cosine precision@10: **0.6300**, injected hubs/query: **3.3687**;
-- SMA precision@10: **0.8519**, injected hubs/query: **0.0000**.
+### Representation-independent `SemanticOracle`
 
-This is a mechanism test, not a production superiority claim.
+The contract does not require vectors. Implementations expose stable-ID membership, affinity and neighborhoods through `SemanticOracle`.
 
-## Phase 1 — Semantic Coordinate Fabric
+Current adapters include dense cosine vectors and arbitrary callbacks for sparse, graph, hybrid or remote systems.
 
-The v0.2/v0.3 research kernel includes:
+A real SciFact benchmark now audits the **exact same 650-clause contract digest** against both BGE dense embeddings and a lexical BM25 sparse ranker. BGE scores about **0.9467** on the ABI; BM25 **0.8913**, with all 650 clauses evaluated and zero missing clauses.
 
-- rectangular scaled-Procrustes maps across different dimensions;
-- piecewise local transition atlases;
-- deterministic held-out transition diagnostics;
-- local support radius + held-out local-risk calibration;
-- **query-dependent routing**: the same model graph may choose different translation paths in different semantic regions;
-- multi-hop transition graph and cycle-consistency audits;
-- concurrent cross-space search;
-- coverage-corrected rank fusion during partial migrations;
-- `SemanticCell` barycenters with dispersion and provenance;
-- virtual target-space materialization before full re-embedding;
-- `fault_lines()` for representation-sensitive objects;
-- coordinate-aware drift reports;
-- portable `semantic-coordinate-transition` format v2.
+### Support-aware selective rollout
 
-### Deterministic mechanism tests
+The runtime distinguishes:
 
-| Test | Simple baseline | Current SCF |
-|---|---:|---:|
-| Region-dependent cross-model warp, held-out pair cosine | global Procrustes **0.7042** | local atlas **0.9414** |
-| Target index only 25% migrated, top-10 overlap vs legacy SMA oracle | new-only **0.2080** | fabric **0.8460** |
-| Transition-cycle integrity | good **~1.0000** | corrupted **-0.0760** |
-| Exact-rotation toy migration with 20% direct target vectors | direct coverage **0.20** | virtual coverage **1.00** |
+1. contract score;
+2. logical-object/contract coverage;
+3. local support / OOD evidence;
+4. proxy risk;
+5. statistical rollout certification.
 
-The virtual-materialization case is intentionally easy. It validates mechanics, not equivalence between real neural embedding models.
+A candidate can therefore serve only a certified region with fallback elsewhere instead of relying on one global model switch.
 
-### First real-data coordinate test
+### Statistical certification baselines
 
-`digits_coordinate_benchmark.py` uses 1,797 real handwritten-digit observations with two different coordinate systems: 64-D normalized pixels and 324-D HOG descriptors. With 1,400 indexed images and 397 held-out queries, the local transition improves same-digit precision@10 over one global map from **0.4897 -> 0.7353** at 20% anchor coverage and **0.4741 -> 0.7776** at 40%.
+Two auditable methods are implemented:
 
-Exact HOG-neighbor imitation remains much lower (**0.1685** and **0.2161**), which is an important result rather than an inconvenience: **target-ranking fidelity and downstream semantic relevance are different metrics and must both be reported.**
+- `calibrate_semantic_risk()` — split selection/certification with a family of thresholds and union-corrected Chernoff/KL bounds;
+- `calibrate_semantic_risk_preregistered()` — selection freezes one threshold before certification labels are inspected, then an exact one-sided binomial bound certifies that one rule.
 
-This is real data but not yet a neural embedding-model benchmark.
+On SciFact, both methods refuse a 10% failure SLA. At **15%**, the simultaneous family remains uncertified, while the pre-registered exact rule certifies an upper bound of about **13.16%**. On 200 held-out queries it accepts **98.5%** and observes about **10.15%** failures in the accepted region.
 
-## Phase 2 — Semantic ABI
+These are statistical baselines, not new statistical theory; see [`docs/PRIOR_ART.md`](docs/PRIOR_ART.md).
 
-Cross-model embedding interoperability is already an active 2025–2027 research area. The repository therefore no longer treats “mapping one embedding space to another” as its strongest novelty hypothesis. See [`docs/PRIOR_ART.md`](docs/PRIOR_ART.md).
+### Progressive Semantic Audit
 
-The new layer asks a different question:
+A fixed tiny subset of clauses proved too fragile. The current scalable direction instead audits the **entire contract probabilistically**:
 
-> **What must remain semantically true when the representation implementation changes?**
+- every hard clause is always evaluated;
+- soft clauses are sampled proportional to weight;
+- repeated samples reuse cached oracle evaluations;
+- exact binomial bounds with a predeclared error budget allow early PASS/FAIL;
+- ambiguous cases fall back to the exhaustive audit.
 
-`SemanticContract` expresses assertions over stable logical IDs rather than coordinates:
+On a real Digits benchmark with **1,500 clauses**, 15 scenario/SLA decisions matched the exhaustive audit **15/15**. Twelve decisions stopped early and evaluated on average only **7.17% of unique clauses**; near-boundary cases correctly fell back to 100%.
 
-- ordinal triplets: `A must prefer B over C`;
-- critical-neighborhood survival budgets;
-- reciprocal-neighbor/topological edges;
-- hard vs soft requirements;
-- provenance/source for each clause.
+This policy controls a weighted soft-clause **violation-rate SLA**; it is intentionally distinct from the historical aggregate contract score.
 
-Two compatibility dimensions are deliberately separate:
+### Semantic Diff, mutation adequacy and active repair
 
-- **application semantic compatibility** — meaning the product/domain requires;
-- **legacy behavior compatibility** — selected retrieval behavior we may want to preserve or consciously break.
+The change-management loop also includes:
 
-Contracts have canonical SHA-256 identities and can be versioned in a tamper-evident `ContractLedger` hash chain.
+- `semantic_diff()` — finds representation disagreements and proposes high-value human/domain questions;
+- semantic mutation testing — deliberately injects failures to measure contract adequacy;
+- sparse repair planning — prioritizes review/re-embedding where known semantic risk is concentrated;
+- `SemanticReleaseCertificate` — binds implementation identity, preprocessing, contract digest, risk certificate and evidence hashes into a reproducible release artifact.
 
-### Local certification and selective rollout
+On Digits, the top 25 Semantic Diff questions were label-resolvable **68%** of the time versus about **11.7%** across all disagreements. In a deliberate 10% corruption experiment, the first 25 repair candidates were truly corrupt **68%** of the time versus a 10% random expectation. These remain mechanism results, not production guarantees.
 
-An audit does not return only one global score. Violated clauses create a local risk field over logical objects. `SemanticABIGate` interpolates that risk around a query and can:
+## What was falsified or narrowed
 
-- use the new implementation in certified regions;
-- fall back to the legacy implementation in locally broken regions;
-- refuse all implementations when hard contract requirements fail.
+Negative results are first-class evidence in this repository.
 
-That enables **region-wise semantic rollout** instead of one global “model passed / model failed” switch.
+### Local cross-model translation is not generally better
 
-### Real-data Semantic ABI benchmark
+On a real BGE→MiniLM SciFact migration, target-neighbor overlap@10 is:
 
-On 1,400 real handwritten digits:
+- global map: **0.4745**;
+- local atlas: **0.3680**.
 
-**Application contract — 1,400 hard-negative ordinal assertions**
+Held-out validation also favors global, so `EvidenceGatedTransition` correctly selects the simpler global map. Local SCF is therefore an optional expert that must earn its complexity on held-out data.
 
-- legacy pixels: **0.980**;
-- different HOG representation: **0.911**;
-- HOG after deliberate 10% identity corruption: **0.813**.
+### Fixed Semantic Witness sparsification is not solved
 
-At local-risk threshold 0.15, certified coverage drops from about **76.9%** to **57.0%** after corruption.
+A 1,500-clause contract compressed to 10 clauses retained only **62.5%** of held-out regressions. Larger fixed subsets reached 100% sensitivity but produced large false-positive rates. Random same-size subsets remain competitive on the overall trade-off.
 
-**Captured legacy-behavior contract**
+The witness module remains a research baseline and is **not** part of the public top-level API.
 
-- pixels: **1.000**;
-- HOG: **0.711**;
-- corrupted HOG: **0.610**.
+### Learned fixed Diagnostic Panels overfit object-local faults
 
-The point is not that HOG is better or worse. The result demonstrates that a representation can preserve application semantics substantially better than it preserves the legacy retriever's exact behavior.
+A discriminative panel achieved perfect training separation and then **0% held-out regression recall** across budgets 5–100 clauses. It is retained only as a falsified research experiment, not promoted as an API.
 
-## Phase 3 — active semantic repair
+These failures motivated Progressive Semantic Audit: do not pretend omitted clauses are universally redundant; sample the full weighted semantic surface and attach the shortcut to an explicit statistical error budget.
 
-`plan_repairs()` turns contract violations into an ordered sparse backfill/review plan. The transparent V0 greedy combines:
+## Semantic Manifold Atlas and Coordinate Fabric
 
-- local semantic risk;
-- number of violated clauses touching the object;
-- geometric diversity, so one dense fault region does not consume the entire budget.
+The earlier research kernels remain useful supporting machinery.
 
-In the same real-data test, after corrupting 140/1,400 HOG objects:
+**SMA** includes overlapping local charts, mutual-kNN topology, hubness/density diagnostics, CSLS-inspired ranking, local intrinsic dimension and `bridge`/`boundary` queries. Its synthetic black-hole stress test improves precision@10 from **0.6300 → 0.8519** while removing injected hubs from the top results. This is a mechanism test, not a universal ANN superiority claim.
 
-| Repair/review budget | Corrupted objects among selected | Uniform-random expectation |
-|---:|---:|---:|
-| 25 | **68%** | 10% |
-| 50 | **54%** | 10% |
-| 100 | **37%** | 10% |
-| 140 | **33.6%** | 10% |
+**SCF** includes global/local cross-space transitions, held-out diagnostics, cycle consistency, partial-migration fusion, semantic cells, virtual target-space materialization and representation drift/fault lines. Cross-model translation/local-composable methods have substantial 2025–2027 prior art; SCF is migration machinery, not the core novelty claim.
 
-This suggests a path toward **semantic backfill on demand**: re-embed or inspect the small set of objects that maximally reduces uncertified semantic surface instead of blindly recomputing every vector.
-
-The current greedy is a baseline. A real research version should compare submodular selection, active learning, uncertainty reduction and cost-aware planning.
-
-## Minimal Semantic ABI example
+## Minimal usage
 
 ```python
 from semantic_atlas import (
-    SemanticABIGate,
-    contract_from_labels,
-    plan_repairs,
+    CallbackSemanticOracle,
+    SemanticContract,
+    TripletClause,
+    audit_contract,
+    progressive_semantic_audit,
 )
 
-contract = contract_from_labels(
-    legacy_vectors,
-    domain_labels,
-    anchors=critical_ids,
+contract = SemanticContract("product-semantics", "1").add(
+    TripletClause("query:refund", "doc:refund-policy", "doc:careers", hard=True)
 )
 
-legacy_report = contract.audit(legacy_vectors, implementation="legacy")
-new_report = contract.audit(new_vectors, implementation="new-model")
-
-# Region-wise deployment decision.
-gate = SemanticABIGate(
-    {
-        "legacy": (legacy_report, legacy_vectors),
-        "new-model": (new_report, new_vectors),
-    },
-    max_local_risk=0.15,
+oracle = CallbackSemanticOracle(
+    object_ids=frozenset({"query:refund", "doc:refund-policy", "doc:careers"}),
+    similarity_fn=my_similarity,
+    neighbors_fn=my_neighbors,
+    implementation="candidate-retriever",
 )
 
-decision = gate.choose(
-    {
-        "legacy": legacy_query_vector,
-        "new-model": new_query_vector,
-    },
-    prefer=("new-model", "legacy"),
-)
+full_report = audit_contract(contract, oracle)
 
-# Spend a limited re-embedding/review budget where it matters most.
-repair_plan = plan_repairs(new_report, new_vectors, limit=100)
-```
-
-## Cross-model example
-
-```python
-from semantic_atlas import FabricRecord, SemanticFabric, SpaceSpec
-
-fabric = SemanticFabric(chart_size=64, graph_k=10)
-fabric.add_space(SpaceSpec("legacy", 1536, version="encoder-v1"))
-fabric.add_space(SpaceSpec("next", 1024, version="encoder-v2"))
-
-fabric.add(FabricRecord("doc-1", {"legacy": legacy_vector_1}))
-fabric.add(FabricRecord("doc-2", {"legacy": legacy_vector_2, "next": next_vector_2}))
-
-fabric.fit_bidirectional("legacy", "next", anchor_ids=paired_anchor_ids, chart_size=32)
-fabric.build()
-
-hits = fabric.search(next_query, query_space="next", top_k=10)
-virtual_next = fabric.materialize_virtual_space(
-    "next",
-    min_cell_confidence=0.85,
-    min_transport_confidence=0.80,
+# For large contracts: every hard clause remains exhaustive; soft clauses may
+# stop early only when the statistical SLA permits it.
+progressive = progressive_semantic_audit(
+    contract,
+    oracle,
+    max_soft_violation_rate=0.05,
+    delta=0.05,
 )
 ```
 
-## Run
+## Validation
 
 ```bash
 python -m venv .venv
@@ -243,45 +171,44 @@ source .venv/bin/activate
 pip install -e '.[dev]'
 pytest
 python benchmarks/hubness_benchmark.py
-python benchmarks/coordinate_fabric_benchmark.py
 ```
 
-Real-data benchmarks:
+Real-data mechanism benchmarks:
 
 ```bash
 pip install -e '.[bench]'
-python benchmarks/digits_coordinate_benchmark.py
 python benchmarks/semantic_abi_digits_benchmark.py
+python benchmarks/semantic_diff_digits_benchmark.py
+python benchmarks/semantic_mutation_digits_benchmark.py
+python benchmarks/semantic_progressive_audit_digits_benchmark.py
 ```
 
-For precomputed paired embeddings from real neural encoders:
-
-```bash
-python benchmarks/npz_upgrade_benchmark.py pair.npz --anchor-fraction 0.10 --k 10
-```
+Heavy neural/SciFact evidence runs in the isolated GitHub Actions workflow `.github/workflows/real-encoder.yml` so public models are not downloaded on every commit.
 
 ## Scientific posture
 
-This is a **falsifiable research program**, not a claim that the repository has already revolutionized vector databases.
+This repository is a **falsifiable research program**, not a claim that Semantic ABI is already a standard or that the project has revolutionized retrieval infrastructure.
 
-The prior-art pass materially narrowed our claims: SIGMOD/ICML work already covers important aspects of cross-model vector integration, local consistency, composable translation and embedding independence. That is why Semantic ABI is deliberately framed above coordinate translation rather than renaming existing work.
+The project should be narrowed or killed if representative experiments show that:
 
-The project should be simplified or killed if:
+- Semantic ABI predicts regressions no better than ordinary held-out evaluation;
+- representation independence collapses outside the current dense↔sparse test;
+- useful contracts require near-exhaustive human annotation;
+- support/risk certification produces negligible useful coverage;
+- Progressive Semantic Audit saves little work at realistic contract scales;
+- active repair does not improve certified-coverage-per-cost versus simple backfill;
+- the complete abstraction provides little beyond conventional regression suites.
 
-- Semantic ABI predicts downstream failures no better than ordinary held-out evaluation;
-- useful contracts require near-corpus-scale annotation;
-- local risk is poorly calibrated;
-- active repair does not beat simple/random backfill policies economically;
-- SCF translation adds complexity without meaningful migration value on real model pairs.
+## Documentation
 
-## Research documents
-
-- [`docs/SEMANTIC_ABI.md`](docs/SEMANTIC_ABI.md) — current strongest research hypothesis
-- [`docs/PRIOR_ART.md`](docs/PRIOR_ART.md) — corrected prior-art map and non-claims
-- [`docs/SEMANTIC_FABRIC.md`](docs/SEMANTIC_FABRIC.md) — coordinate-fabric theory
-- [`docs/SEMANTIC_COORDINATE_PROTOCOL.md`](docs/SEMANTIC_COORDINATE_PROTOCOL.md) — portable coordinate protocol draft
-- [`docs/BENCHMARKS_V2.md`](docs/BENCHMARKS_V2.md) — falsification protocol
+- [`docs/CURRENT_STATUS.md`](docs/CURRENT_STATUS.md) — **authoritative dated research status and evidence**
+- [`docs/SEMANTIC_ABI.md`](docs/SEMANTIC_ABI.md) — Semantic ABI and change-control model
+- [`docs/PRIOR_ART.md`](docs/PRIOR_ART.md) — prior art, narrowed claims and non-claims
+- [`docs/BENCHMARKS_V2.md`](docs/BENCHMARKS_V2.md) — falsification/evidence protocol
+- [`docs/ROADMAP.md`](docs/ROADMAP.md) — next evidence gates
+- [`docs/SEMANTIC_FABRIC.md`](docs/SEMANTIC_FABRIC.md) — cross-coordinate migration research
+- [`docs/SEMANTIC_COORDINATE_PROTOCOL.md`](docs/SEMANTIC_COORDINATE_PROTOCOL.md) — transition interchange draft
 - [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md) — trust boundaries
-- [`docs/RESEARCH.md`](docs/RESEARCH.md) — Phase 0 research basis
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — original SMA architecture
-- [`docs/ROADMAP.md`](docs/ROADMAP.md) — evidence-gated roadmap
+
+The repository is moving to machine-enforced evidence freshness through `docs/evidence-manifest.json`: benchmark claims are tied to workflow artifacts and the Git blobs of the code that produced them, so modifying evidence-sensitive code makes the documented proof stale until it is regenerated.
