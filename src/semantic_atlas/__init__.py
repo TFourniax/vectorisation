@@ -1,4 +1,4 @@
-"""Semantic Manifold Atlas research prototype."""
+"""Semantic Manifold Atlas / Semantic ABI research package."""
 
 from .adequacy import (
     AdequacyCheck,
@@ -8,6 +8,7 @@ from .adequacy import (
     assess_contract_adequacy,
 )
 from .alignment import RoutedTransport, TransitionAtlas, TransitionDiagnostics, TransitionGraph
+from .conformance import ConformanceIssue, OracleConformanceReport, check_oracle_conformance
 from .contract_lint import ContractIssue, ContractLintReport, lint_contract
 from .contracts import (
     ContractLedger,
@@ -25,6 +26,7 @@ from .core import AtlasIndex, AtlasRecord, SearchHit, SearchPolicy
 from .drift import DriftPoint, DriftReport, compare_indexes
 from .embed import FeatureHashEmbedder
 from .fabric import FabricRecord, SemanticCell, SemanticFabric, SpaceSpec
+from .late_interaction import LateInteractionOracleV1, MaxSimExplanation, maxsim_score
 from .lifecycle import AssessmentDelta, ChangeAssessment, SemanticChangeManager, compare_assessments
 from .mutation import (
     MutationOutcome,
@@ -39,7 +41,23 @@ from .mutation import (
 )
 from .oracle import CallbackSemanticOracle, DenseVectorOracle, SemanticOracle, audit_contract, evaluate_contract_clause
 from .progressive_audit import ProgressiveAuditResult, progressive_semantic_audit
+from .protocol_v1 import (
+    BatchSemanticOracleV1,
+    ContractExecutionPlan,
+    LegacyOracleBatchAdapter,
+    NeighborRequest,
+    OracleExecutionStats,
+    OracleManifest,
+    OracleSnapshot,
+    ProtocolAuditResult,
+    ScorePair,
+    audit_contract_v1,
+    audit_snapshot,
+    compile_contract,
+    execute_contract_plan,
+)
 from .release import EvidenceReference, ImplementationFingerprint, SemanticReleaseCertificate, make_release_certificate
+from .remote_v1 import HttpJsonTransport, InProcessProtocolTransport, RemoteSemanticOracleV1, dispatch_protocol_request
 from .repair import (
     CoverageRepairCandidate,
     CoverageRepairPlan,
@@ -151,4 +169,27 @@ __all__ = [
     "add_vector_noise",
     "default_semantic_mutations",
     "mutation_test",
+    "OracleManifest",
+    "ScorePair",
+    "NeighborRequest",
+    "BatchSemanticOracleV1",
+    "LegacyOracleBatchAdapter",
+    "ContractExecutionPlan",
+    "OracleExecutionStats",
+    "OracleSnapshot",
+    "ProtocolAuditResult",
+    "compile_contract",
+    "execute_contract_plan",
+    "audit_snapshot",
+    "audit_contract_v1",
+    "LateInteractionOracleV1",
+    "MaxSimExplanation",
+    "maxsim_score",
+    "ConformanceIssue",
+    "OracleConformanceReport",
+    "check_oracle_conformance",
+    "RemoteSemanticOracleV1",
+    "HttpJsonTransport",
+    "InProcessProtocolTransport",
+    "dispatch_protocol_request",
 ]
