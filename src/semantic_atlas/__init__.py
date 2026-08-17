@@ -18,6 +18,7 @@ from .drift import DriftPoint, DriftReport, compare_indexes
 from .embed import FeatureHashEmbedder
 from .fabric import FabricRecord, SemanticCell, SemanticFabric, SpaceSpec
 from .lifecycle import AssessmentDelta, ChangeAssessment, SemanticChangeManager, compare_assessments
+from .release import EvidenceReference, ImplementationFingerprint, SemanticReleaseCertificate, make_release_certificate
 from .repair import (
     CoverageRepairCandidate,
     CoverageRepairPlan,
@@ -89,4 +90,8 @@ __all__ = [
     "AssessmentDelta",
     "SemanticChangeManager",
     "compare_assessments",
+    "ImplementationFingerprint",
+    "EvidenceReference",
+    "SemanticReleaseCertificate",
+    "make_release_certificate",
 ]
