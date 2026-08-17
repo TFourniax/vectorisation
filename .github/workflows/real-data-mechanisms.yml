@@ -10,12 +10,13 @@ on:
       - benchmarks/semantic_abi_digits_benchmark.py
       - benchmarks/semantic_diff_digits_benchmark.py
       - benchmarks/semantic_mutation_digits_benchmark.py
+      - benchmarks/semantic_witness_digits_benchmark.py
       - .github/workflows/real-data-mechanisms.yml
 
 jobs:
   digits:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -32,6 +33,8 @@ jobs:
         run: python benchmarks/semantic_diff_digits_benchmark.py | tee digits-semantic-diff.json
       - name: Semantic ABI mutation adequacy benchmark
         run: python benchmarks/semantic_mutation_digits_benchmark.py | tee digits-semantic-mutation.json
+      - name: Semantic Witness held-out contract compression benchmark
+        run: python benchmarks/semantic_witness_digits_benchmark.py | tee digits-semantic-witness.json
       - uses: actions/upload-artifact@v4
         with:
           name: real-data-mechanism-evidence
@@ -40,4 +43,5 @@ jobs:
             digits-abi.json
             digits-semantic-diff.json
             digits-semantic-mutation.json
+            digits-semantic-witness.json
           if-no-files-found: error
