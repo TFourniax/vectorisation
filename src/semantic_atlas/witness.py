@@ -198,7 +198,7 @@ def evaluate_clause_subset(
                 false_positive_weight += weight
         if full_detected == witness_detected:
             correct_weight += weight
-        if full_loss > _EPS:
+        if full_detected and full_loss > _EPS:
             retained_loss_values.append((retained_loss, weight))
 
         evaluations.append(
@@ -310,7 +310,11 @@ def build_semantic_witness_set(
 
     positive_total = sum(weight for weight, target in zip(scenario_weights, full_detected) if target)
     negative_total = sum(weight for weight, target in zip(scenario_weights, full_detected) if not target)
-    loss_weight_total = sum(weight for weight, loss in zip(scenario_weights, full_losses) if loss > _EPS)
+    loss_weight_total = sum(
+        weight
+        for weight, loss, target in zip(scenario_weights, full_losses, full_detected)
+        if target and loss > _EPS
+    )
 
     def candidate_metrics(clause_index: int | None) -> tuple[float, float, float, float, float]:
         if clause_index is None:
@@ -353,7 +357,7 @@ def build_semantic_witness_set(
                 false_positive += weight
             if target == detected:
                 correct += weight
-            if full_loss > _EPS:
+            if target and full_loss > _EPS:
                 retained_loss_sum += weight * min(1.0, selected_loss / full_loss)
 
         positive_recall = 1.0 if positive_total <= _EPS else true_positive / positive_total
