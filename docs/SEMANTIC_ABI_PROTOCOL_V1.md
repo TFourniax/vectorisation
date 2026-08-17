@@ -4,19 +4,17 @@
 
 A portable Semantic Contract is only useful if it can be executed against retrieval systems that do **not** share an embedding geometry, process, programming language, or even a symmetric scoring function.
 
-The original in-process `SemanticOracle` abstraction was enough to prove representation independence at the Python level. It was not yet a deployment protocol. In particular, the word `similarity` silently suggests a symmetric metric even though practical retrieval systems often implement a directional relation:
+The original in-process `SemanticOracle` abstraction proved representation independence at the Python level. It was not yet a deployment protocol. Practical retrievers are often directional:
 
 - BM25: query → document;
 - ColBERT / MaxSim: query-token matrix → document-token matrix;
-- hybrid rankers: query → fused candidate evidence;
+- hybrid rankers: query → fused evidence;
 - typed graph traversal: source node/type → candidate node/type;
-- remote proprietary rankers: implementation-defined relevance scores.
+- remote proprietary rankers: implementation-defined relevance.
 
-Protocol v1 therefore defines the primitive as **`score(anchor, candidate)`**, not distance or cosine.
+Protocol v1 therefore defines **`score(anchor, candidate)`**, not distance or cosine.
 
 ## Compiler model
-
-A `SemanticContract` is compiled before execution.
 
 ```text
 SemanticContract
@@ -32,6 +30,9 @@ compile_contract()
 ContractExecutionPlan (canonical digest)
       |
       v
+compatibility preflight
+      |
+      v
 contains_many()   score_many()   neighbors_many()
       \               |               /
        +--------------+--------------+
@@ -41,113 +42,172 @@ contains_many()   score_many()   neighbors_many()
                       |
                       v
                 audit_snapshot()
+                      |
+                      v
+             protocol attestation
 ```
 
-Repeated clauses can share the same backend operations. A 10,000-clause contract does not imply 10,000 network calls.
+Repeated clauses share backend operations. A 10,000-clause contract does not imply 10,000 network calls. With the default executor, a plan requiring all three operation families uses one batch call for membership, one for directional scores and one for rankings.
 
-For a contract that needs membership, directional scores, and rankings, `execute_contract_plan()` makes **at most one batch call per operation family**. A remote client therefore needs one manifest request plus up to three data round trips for the whole compiled plan.
+This is **execution deduplication, not semantic compression**: the full contract remains normative.
 
-This is an execution optimization, not semantic compression: the full contract remains normative.
+## Oracle manifest
 
-## Wire operations
-
-The normative HTTP-shaped reference surface is described in [`../spec/semantic-abi-oracle-v1.openapi.yaml`](../spec/semantic-abi-oracle-v1.openapi.yaml).
-
-### `GET /v1/manifest`
-
-Declares:
+Every Protocol-v1 implementation exposes a canonical `OracleManifest` containing:
 
 - protocol/version;
-- implementation identity;
-- implementation kind;
+- implementation identity/kind;
 - score semantics;
 - score directionality: `symmetric`, `asymmetric`, or `unknown`;
 - determinism claim;
 - capabilities;
 - provider metadata.
 
-The canonical manifest has a SHA-256 digest and can be attached to audit/release evidence.
+The manifest itself has a SHA-256 digest. Provider metadata may declare typed namespaces such as `score_anchor_prefixes`, `score_candidate_prefixes`, and `neighbor_anchor_prefixes`.
 
-### `POST /v1/contains`
+## Static plan compatibility
 
-Batch membership over stable logical object IDs.
+`check_plan_compatibility()` rejects unsupported contracts **before execution**.
 
-### `POST /v1/score`
-
-Batch directional score pairs:
+For example, a query/document late-interaction backend can declare:
 
 ```json
 {
-  "pairs": [
-    {"anchor": "q:123", "candidate": "d:456"}
-  ]
+  "score_anchor_prefixes": ["q:"],
+  "score_candidate_prefixes": ["d:"],
+  "neighbor_anchor_prefixes": ["q:"]
 }
 ```
 
-The protocol does not require the reverse pair to exist or have the same score.
+A normal `q: -> d:` retrieval contract is accepted. A clause asking that backend to compute document→document neighborhoods is rejected rather than silently assigning a made-up interpretation.
+
+The preflight also checks required batch capabilities.
+
+## Wire operations
+
+The reference HTTP shape is specified in [`../spec/semantic-abi-oracle-v1.openapi.yaml`](../spec/semantic-abi-oracle-v1.openapi.yaml).
+
+### `GET /v1/manifest`
+Returns the oracle manifest.
+
+### `POST /v1/contains`
+Batch membership over stable logical object IDs.
+
+### `POST /v1/score`
+Batch **directional** pairs:
+
+```json
+{"pairs":[{"anchor":"q:123","candidate":"d:456"}]}
+```
+
+The reverse pair is neither required nor assumed equal.
 
 ### `POST /v1/neighbors`
-
-Batch top-k requests. Returned IDs must use the same logical namespace used by the contract.
+Batch top-k requests using the same logical namespace as the contract.
 
 ## Conformance suite
 
-`check_oracle_conformance()` checks claims made by the implementation rather than imposing vector-specific assumptions.
+`check_oracle_conformance()` tests provider claims without imposing vector-specific assumptions:
 
-Current checks include:
-
-- declared anchors exist;
+- anchors exist;
 - top-k response length;
-- unique neighbor IDs;
+- no duplicate or unknown neighbor IDs;
 - no self-neighbor unless explicitly declared;
-- returned IDs are known to the oracle;
-- deterministic repeatability when `deterministic=true`;
+- deterministic repeatability when declared;
 - top-k prefix consistency;
-- returned ranking is coherent with `score_many` when the score capability is declared;
+- rank/score coherence when scoring is exposed;
 - finite scores;
-- symmetry only when the manifest explicitly claims symmetry.
+- symmetry **only when the provider explicitly claims symmetry**.
 
-A late-interaction oracle may therefore be fully conformant while being intentionally asymmetric.
+An asymmetric late-interaction oracle can therefore be fully conformant.
 
 ## Late interaction / MaxSim
 
-`LateInteractionOracleV1` stores separate query-token and document-token matrices and evaluates classic ColBERT-style MaxSim:
+`LateInteractionOracleV1` keeps separate query-token and document-token matrices and evaluates ColBERT-style MaxSim:
 
 ```text
 score(q, d) = sum_i max_j <q_i, d_j>
 ```
 
-It can consume rankings produced by an external candidate engine such as PLAID, Voyager, Vespa, or WARP while evaluating contract triplets directly from token matrices. This keeps `NeighborClause` candidate generation scalable without making ordinal clauses depend on whether both compared documents appeared in the retrieved top-k.
+It may consume rankings produced by an external candidate engine such as PLAID, Voyager, Vespa or WARP while evaluating triplet clauses directly from token matrices. This prevents ordinal clauses from depending on whether both compared documents happened to appear in a top-k retrieval result.
 
-The adapter exposes `explain(anchor, candidate)`, returning the best matching document-token index and score for each query token. This is useful evidence for contract failures but is **not** promoted to application truth.
+`explain(anchor, candidate)` returns each query token's best matching document-token index and contribution. This is diagnostic evidence, not application truth.
 
 ## Remote execution
 
-`dispatch_protocol_request()` is the reference server-side dispatcher. It is deliberately framework-neutral.
+`dispatch_protocol_request()` is a framework-neutral reference dispatcher.
 
-`RemoteSemanticOracleV1` accepts any transport callable. The repository includes:
+`RemoteSemanticOracleV1` accepts any transport callable. Included transports:
 
-- `InProcessProtocolTransport` for deterministic conformance/integration tests;
-- `HttpJsonTransport` as a standard-library JSON-over-HTTP reference client.
+- `InProcessProtocolTransport` for deterministic integration/conformance tests;
+- `HttpJsonTransport` as a zero-dependency JSON-over-HTTP client.
 
-The same payloads can be carried through FastAPI, Flask, gRPC gateways, serverless functions, Unix sockets, internal service meshes, or provider-specific bridges.
+The payloads can therefore be exposed through FastAPI, Flask, a gRPC gateway, serverless functions, Unix sockets, an internal service mesh or a provider bridge without changing the contract.
+
+The installed CLI exposes:
+
+```bash
+semantic-abi plan contract.json
+semantic-abi remote-audit https://oracle.example contract.json
+semantic-abi remote-conformance https://oracle.example --anchors q:1,q:2
+```
+
+## State-bound incremental audit
+
+Versioned contracts often share most of their operations. `execute_contract_plan_incremental()` can reuse a previous `OracleSnapshot`, but only under strict conditions:
+
+1. the oracle declares `deterministic=true`;
+2. its manifest contains `metadata.state_digest`;
+3. the **complete manifest digest is identical** to the previous snapshot;
+4. the previous snapshot is cryptographically bound to the previous execution plan.
+
+Under those conditions it reuses:
+
+- previous membership checks for unchanged IDs;
+- exact previous directional score pairs;
+- exact top-k results;
+- a larger old top-k as evidence for a smaller new prefix.
+
+Only the delta is fetched from the backend. A changed model/index/state digest invalidates all reuse. No `state_digest` means **no cross-audit cache**.
+
+This makes contract evolution cheaper without weakening the meaning of the observation.
+
+## Protocol attestation
+
+`SemanticProtocolAttestation` binds one observed execution to:
+
+- contract digest;
+- oracle-manifest digest;
+- compiled plan digest;
+- observed snapshot digest;
+- protocol-audit digest;
+- conformance digest/status;
+- optional Contract Adequacy digest/status;
+- optional risk-certificate digest/status;
+- external evidence hashes.
+
+It is a tamper-evident SHA-256 envelope, **not a digital signature**. Production systems can sign the final attestation digest with their own KMS/signature system.
+
+Deployment eligibility is deliberately strict: good-looking metrics alone do not imply approval. The current envelope requires explicit `status="certified"`, protocol conformance, hard-clause pass, zero missing clauses, `adequacy_status="adequate"`, and an explicitly certified risk result.
 
 ## Backward compatibility
 
-`LegacyOracleBatchAdapter` wraps the historical Python `SemanticOracle` without changing previous evidence-sensitive code. It reports score directionality as `unknown` because the legacy `similarity` name did not establish symmetry as a contract.
+`LegacyOracleBatchAdapter` wraps the evidence-pinned historical `SemanticOracle` without changing it. Legacy score directionality is reported as `unknown` because the old word `similarity` never established symmetry as a contract.
 
-Protocol v1 is therefore additive: existing evidence remains reproducible while new integrations can use the stronger model.
+Protocol v1 is additive: older evidence remains reproducible while new integrations use the stronger execution boundary.
+
+## Current validation status
+
+The Protocol-v1 compiler, remote transport, directional MaxSim adapter, conformance suite, compatibility preflight, attestation, CLI, and incremental reuse are covered by the standard Python 3.10/3.12/3.13 CI. The separate real ColBERTv2/SciFact portability gate is intentionally tracked as independent neural evidence rather than being inferred from unit tests.
 
 ## What this changes strategically
 
 Before Protocol v1, “representation independent” meant that the audit function did not require dense vectors.
 
-After Protocol v1, the stronger claim being tested is:
+Protocol v1 tests a stronger infrastructure claim:
 
-> **One versioned Semantic Contract can be compiled once and executed through a small, inspectable wire protocol against local or remote retrievers whose internal representations and scoring algebra are unrelated.**
-
-That is the interoperability boundary required before Semantic ABI can plausibly become infrastructure rather than a Python research abstraction.
+> **One versioned Semantic Contract can be compiled once and executed through a small, inspectable, directional wire protocol against local or remote retrievers whose internal representations and scoring algebra are unrelated.**
 
 ## Non-claims
 
-This protocol does not claim to invent RPC, OpenAPI, batch APIs, ColBERT, MaxSim, or retrieval conformance testing in general. Its research question is whether this minimal execution boundary is sufficient and useful for portable semantic change control across heterogeneous retrieval implementations.
+Protocol v1 does not claim to invent RPC, OpenAPI, batching, caching, ColBERT, MaxSim, retrieval conformance testing, sequential statistics, or release attestation in general. The research question is whether their integration around a portable, versioned semantic contract materially improves retrieval change control.
