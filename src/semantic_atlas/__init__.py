@@ -15,13 +15,6 @@ from .contracts import (
     contract_from_labels,
 )
 from .core import AtlasIndex, AtlasRecord, SearchHit, SearchPolicy
-from .diagnostic import (
-    DiagnosticClause,
-    DiagnosticEvaluation,
-    SemanticDiagnosticPanel,
-    build_semantic_diagnostic_panel,
-    evaluate_diagnostic_panel,
-)
 from .drift import DriftPoint, DriftReport, compare_indexes
 from .embed import FeatureHashEmbedder
 from .fabric import FabricRecord, SemanticCell, SemanticFabric, SpaceSpec
@@ -37,7 +30,8 @@ from .mutation import (
     permute_identities,
     pull_to_hub,
 )
-from .oracle import CallbackSemanticOracle, DenseVectorOracle, SemanticOracle, audit_contract
+from .oracle import CallbackSemanticOracle, DenseVectorOracle, SemanticOracle, audit_contract, evaluate_contract_clause
+from .progressive_audit import ProgressiveAuditResult, progressive_semantic_audit
 from .release import EvidenceReference, ImplementationFingerprint, SemanticReleaseCertificate, make_release_certificate
 from .repair import (
     CoverageRepairCandidate,
@@ -108,11 +102,9 @@ __all__ = [
     "DenseVectorOracle",
     "CallbackSemanticOracle",
     "audit_contract",
-    "DiagnosticClause",
-    "DiagnosticEvaluation",
-    "SemanticDiagnosticPanel",
-    "build_semantic_diagnostic_panel",
-    "evaluate_diagnostic_panel",
+    "evaluate_contract_clause",
+    "ProgressiveAuditResult",
+    "progressive_semantic_audit",
     "RepairCandidate",
     "RepairPlan",
     "plan_repairs",
