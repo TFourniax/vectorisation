@@ -1,0 +1,153 @@
+openapi: 3.1.0
+info:
+  title: Semantic ABI Oracle Protocol
+  version: 1.0.0
+  description: >-
+    Representation-neutral batch protocol for auditing a versioned Semantic
+    Contract against dense, sparse, late-interaction, graph, hybrid, or remote
+    retrieval implementations. Score is explicitly directional.
+paths:
+  /v1/manifest:
+    get:
+      operationId: getOracleManifest
+      responses:
+        '200':
+          description: Oracle identity and declared capabilities.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OracleManifest'
+  /v1/contains:
+    post:
+      operationId: containsMany
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [object_ids]
+              properties:
+                object_ids:
+                  type: array
+                  items: {type: string}
+      responses:
+        '200':
+          description: Membership by stable logical object ID.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [contains]
+                properties:
+                  contains:
+                    type: object
+                    additionalProperties: {type: boolean}
+  /v1/score:
+    post:
+      operationId: scoreMany
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [pairs]
+              properties:
+                pairs:
+                  type: array
+                  items: {$ref: '#/components/schemas/ScorePair'}
+      responses:
+        '200':
+          description: Directional anchor-to-candidate scores.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [scores]
+                properties:
+                  scores:
+                    type: array
+                    items:
+                      allOf:
+                        - {$ref: '#/components/schemas/ScorePair'}
+                        - type: object
+                          required: [score]
+                          properties:
+                            score: {type: number}
+  /v1/neighbors:
+    post:
+      operationId: neighborsMany
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [requests]
+              properties:
+                requests:
+                  type: array
+                  items: {$ref: '#/components/schemas/NeighborRequest'}
+      responses:
+        '200':
+          description: Ranked top-k stable logical object IDs.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [results]
+                properties:
+                  results:
+                    type: array
+                    items:
+                      allOf:
+                        - {$ref: '#/components/schemas/NeighborRequest'}
+                        - type: object
+                          required: [neighbors]
+                          properties:
+                            neighbors:
+                              type: array
+                              items: {type: string}
+components:
+  schemas:
+    OracleManifest:
+      type: object
+      required:
+        - protocol
+        - protocol_version
+        - implementation_id
+        - implementation_kind
+        - score_semantics
+        - score_directionality
+        - deterministic
+        - capabilities
+      properties:
+        protocol: {const: semantic-abi-oracle}
+        protocol_version: {const: 1}
+        implementation_id: {type: string, minLength: 1}
+        implementation_kind:
+          type: string
+          description: dense, sparse, late_interaction, graph, hybrid, remote, or provider-defined.
+        score_semantics: {type: string}
+        score_directionality:
+          enum: [symmetric, asymmetric, unknown]
+        deterministic: {type: boolean}
+        capabilities:
+          type: array
+          items: {type: string}
+        metadata:
+          type: object
+          additionalProperties: true
+    ScorePair:
+      type: object
+      required: [anchor, candidate]
+      properties:
+        anchor: {type: string}
+        candidate: {type: string}
+    NeighborRequest:
+      type: object
+      required: [anchor, k]
+      properties:
+        anchor: {type: string}
+        k: {type: integer, minimum: 1}
