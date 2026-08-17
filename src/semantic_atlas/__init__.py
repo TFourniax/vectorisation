@@ -17,7 +17,14 @@ from .core import AtlasIndex, AtlasRecord, SearchHit, SearchPolicy
 from .drift import DriftPoint, DriftReport, compare_indexes
 from .embed import FeatureHashEmbedder
 from .fabric import FabricRecord, SemanticCell, SemanticFabric, SpaceSpec
-from .repair import RepairCandidate, RepairPlan, plan_repairs
+from .repair import (
+    CoverageRepairCandidate,
+    CoverageRepairPlan,
+    RepairCandidate,
+    RepairPlan,
+    plan_repairs,
+    plan_repairs_by_coverage,
+)
 from .risk_control import (
     CalibrationEvent,
     CertifiedGateDecision,
@@ -60,6 +67,9 @@ __all__ = [
     "RepairCandidate",
     "RepairPlan",
     "plan_repairs",
+    "CoverageRepairCandidate",
+    "CoverageRepairPlan",
+    "plan_repairs_by_coverage",
     "CalibrationEvent",
     "RiskCertificate",
     "CertifiedGateDecision",
