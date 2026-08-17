@@ -11,7 +11,9 @@ on:
       - benchmarks/semantic_diff_digits_benchmark.py
       - benchmarks/semantic_mutation_digits_benchmark.py
       - benchmarks/semantic_witness_digits_benchmark.py
+      - benchmarks/semantic_diagnostic_digits_benchmark.py
       - src/semantic_atlas/witness.py
+      - src/semantic_atlas/diagnostic.py
       - src/semantic_atlas/mutation.py
       - src/semantic_atlas/contracts.py
       - .github/workflows/real-data-mechanisms.yml
@@ -38,6 +40,8 @@ jobs:
         run: python benchmarks/semantic_mutation_digits_benchmark.py | tee digits-semantic-mutation.json
       - name: Semantic Witness held-out contract compression benchmark
         run: python benchmarks/semantic_witness_digits_benchmark.py | tee digits-semantic-witness.json
+      - name: Semantic Diagnostic Panel held-out benchmark
+        run: python benchmarks/semantic_diagnostic_digits_benchmark.py | tee digits-semantic-diagnostic.json
       - uses: actions/upload-artifact@v4
         with:
           name: real-data-mechanism-evidence
@@ -47,4 +51,5 @@ jobs:
             digits-semantic-diff.json
             digits-semantic-mutation.json
             digits-semantic-witness.json
+            digits-semantic-diagnostic.json
           if-no-files-found: error
