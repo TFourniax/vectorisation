@@ -1,223 +1,160 @@
 # Benchmark / evidence protocol
 
-The repository separates **software correctness**, **mechanism evidence**, **real representation evidence**, **contract adequacy**, **statistical certification**, **economics** and **negative/falsification evidence**.
+The repository separates **software correctness**, **protocol interoperability**, **mechanism evidence**, **real representation evidence**, **contract adequacy**, **statistical certification**, **economics** and **negative/falsification evidence**.
 
-Latest numbers: [`CURRENT_STATUS.md`](CURRENT_STATUS.md).  
-Machine-bound provenance: [`evidence-manifest.json`](evidence-manifest.json).
+Latest numbers: [`CURRENT_STATUS.md`](CURRENT_STATUS.md). Machine-bound promoted evidence: [`evidence-manifest.json`](evidence-manifest.json).
+
+## Research rules
+
+1. Never use test qrels to author a contract or choose a variant.
+2. Compare against the simplest relevant baseline.
+3. Separate portability from predictive validity.
+4. Separate conformity from adequacy.
+5. Separate portable application truth from implementation integrity.
+6. Workflow success means the experiment executed; a hypothesis may still fail its preregistered gate.
+7. Negative results are promoted when reproducible.
+8. Bind major evidence to exact artifacts and evidence-sensitive source blobs.
+9. For Protocol-v1 claims, distinguish **software/TCK conformance** from **real cross-paradigm evidence**.
 
 ## Evidence classes
 
-### S — software correctness
+- **S — software:** unit/integration tests, Python matrix, TCK, evidence freshness.
+- **P — protocol interoperability:** unchanged contract digest, provider manifest/conformance, zero missing clauses, batch-plan execution and wire compatibility across genuinely different retriever algebras.
+- **M — mechanisms:** synthetic/procedural or deliberately corrupted tests.
+- **R — real representation:** real datasets/models/retrievers with untouched task evaluation.
+- **A — adequacy:** coverage, mutation/localization, predictive validity, baseline comparison, held-out volume/diversity.
+- **C — certification:** selection/certification split, SLA, confidence/error budget, optional-stopping treatment and fallback.
+- **E — economics:** re-embeddings/API/GPU/backend cost, downstream gap recovered, latency/backfill avoided.
+- **N — negative evidence:** failed/narrowed hypotheses retained explicitly.
 
-CI must cover Python 3.10/3.12/3.13, full `pytest`, the fixed hubness regression and evidence freshness. Green unit tests are not retrieval-quality evidence.
+## Protocol v1 gate
 
-### M — mechanism tests
+A Protocol-v1 interoperability result is promoted only when all of the following are explicit:
 
-Synthetic/procedural or deliberately corrupted tests answer whether a mechanism reacts to a constructed condition. Examples: hubness, cycle corruption, semantic mutations, Progressive Audit scale and controlled index corruption.
+- exact application-contract digest;
+- backend/oracle manifest identity and directionality;
+- contract compiled without backend-specific clause rewriting;
+- zero required missing clauses;
+- conformance result;
+- execution-plan operation counts / batch calls;
+- untouched downstream retrieval metrics when available;
+- guardrail distinguishing portability from quality superiority and novelty claims.
 
-### R — real observed representation tests
+### Real ColBERTv2 / SciFact result — promoted
 
-Examples: Digits pixels↔HOG, SciFact MiniLM↔BGE, dense BGE↔sparse BM25, and dense/sparse/hybrid multi-dataset comparisons.
+The v0.5 gate compares lexical BM25 and real ColBERTv2 MaxSim under the **same 600-clause contract**:
 
-### A — contract adequacy
+- 1,800 docs;
+- 300 train queries for contract construction;
+- 200 untouched test queries;
+- contract digest `d3dd26211a7a18c8ae8ec07be4e0bcd8e1805024fb8dcd4a67d71506627e1843`.
 
-Conformity asks whether an implementation satisfies observed clauses. Adequacy asks whether those clauses/evaluations are sufficient for the **claim** being made.
+| implementation | ABI | nDCG@10 | Recall@10 | missing |
+|---|---:|---:|---:|---:|
+| BM25 | 0.9067 | 0.7167 | 0.8086 | 0 |
+| ColBERTv2 MaxSim | 0.9047 | 0.7337 | 0.8395 | 0 |
 
-Possible axes: object coverage, mutation kill/localization, predictive association, lift over an ordinary validation baseline, held-out cases, datasets and fault families.
+ColBERT passes **660 conformance checks with zero issues**, all hard clauses and zero missing clauses. The compiled audit represents 805 object checks, 600 unique directional score pairs and 300 top-k requests in **3 batch operation families**.
 
-### C — certification
+**Promotion meaning:** evidence that a single contract executes across sparse lexical and asymmetric multi-vector late-interaction retrieval without shared coordinates or clause translation. It is not a general quality-superiority result.
 
-A deployment certificate must identify selection data, independent certification data, target SLA, `delta`, threshold-selection procedure, multiplicity/optional-stopping treatment, support assumptions and fallback cases.
+## Predictive-validity gate
 
-### E — economics
-
-Repair/migration evidence must measure resources and outcomes: re-embeddings/API/GPU cost, nDCG/Recall gap recovered, certified coverage gained, latency and full-backfill cost avoided.
-
-### N — negative evidence
-
-Negative results are promoted alongside positive evidence. Current examples:
-
-- local BGE→MiniLM mapping loses to global;
-- fixed Witness subsets do not robustly dominate random;
-- learned fixed Diagnostic Panels overfit;
-- current neural repair does not reach 90% downstream recovery;
-- three-dataset ABI predictive superiority over ordinary train nDCG is not supported.
-
-## Golden rules
-
-1. **Never use test qrels to author a contract or choose variants.**
-2. **Always compare against the simplest relevant baseline.**
-3. **Separate portability from predictive validity.**
-4. **Separate conformity from adequacy.**
-5. **Separate application truth from implementation integrity.**
-6. **Report negative results.** Workflow success means the experiment ran, not that the hypothesis passed.
-7. **Bind promoted evidence to exact source blobs and artifacts.**
-
-## Core current evidence
-
-### SMA hubness mechanism
-
-Fixed-seed synthetic stress:
-
-- cosine precision@10 **0.6300**;
-- SMA **0.8519**;
-- cosine injected hubs/query **3.3687**;
-- SMA **0.0000**.
-
-Mechanism test only.
-
-### SCF real neural falsification
-
-BGE→MiniLM SciFact:
-
-- global target-neighbor overlap@10 **0.4745**;
-- local atlas **0.3680**.
-
-Held-out validation also favors global. Local mapping is optional/evidence-gated.
-
-### Real Digits mechanisms
-
-Application contract: pixels ~0.980, HOG ~0.911, corrupted HOG ~0.813.  
-Legacy behavior: pixels 1.000, HOG ~0.711, corrupted HOG ~0.610.
-
-Semantic Diff:
-
-- all disagreements resolvable ~11.7%;
-- top 25 **68%**;
-- top 50 **60%**.
-
-Fixed Witness stress:
-
-| clauses | held-out TPR | FPR |
-|---:|---:|---:|
-| 10 | 62.5% | 0% |
-| 25 | 100% | 28.6% |
-| 100 | 100% | 42.9% |
-
-Learned fixed Diagnostic Panel: perfect training separation → **0% held-out TPR**.
-
-### Progressive Semantic Audit
-
-Policy: hard clauses exhaustive; soft clauses sampled weight-proportional with replacement; cached evaluation; predeclared looks; finite-sample bounds; exact fallback.
-
-Digits 1,500 clauses:
-
-- **15/15** exact decision agreement;
-- **12/15** early;
-- mean early unique fraction **7.17%**.
-
-Scale 10k/100k/250k:
-
-- **10/10** agreement;
-- **9/10** early;
-- near-boundary case falls back to full audit.
-
-Representative 250k costs: healthy PASS **0.08%**, 20%-violation FAIL **0.04%**, ~10%-violation FAIL **0.3992%**.
-
-Next statistical baselines: Adaptive Learn-Then-Test/e-processes and realistic non-iid/stratified faults.
-
-## Real neural SciFact gate
-
-SciFact: 1,800 documents, 500 train queries, 200 held-out test queries.
-
-| implementation | ABI | nDCG@10 | Recall@10 |
-|---|---:|---:|---:|
-| MiniLM dense | ~0.9035 | 0.7387 | 0.8515 |
-| BGE dense | **0.9467** | **0.7821** | **0.8840** |
-| BM25 sparse | 0.8913 | 0.7335 | 0.8228 |
-
-BGE and BM25 execute the exact same 650-clause contract digest.
-
-Selective rollout at `delta=0.10`:
-
-- 5% SLA: no;
-- 10%: no;
-- 15%: preregistered exact rule **yes**, upper ~13.16%;
-- 20%: yes.
-
-15% rule held-out acceptance: **197/200**; realized accepted risk ~**10.15%**.
-
-## Three-dataset predictive-validity gate — completed
-
-Datasets: SciFact, NFCorpus, FiQA.  
-Natural implementations: MiniLM, BGE, BM25, BGE+BM25 RRF.  
-Controlled degradations: seven per dataset.
-
-Rules:
-
-- train qrels only compile contracts;
-- test qrels only measure held-out quality;
-- compare `ABI → test nDCG` with **ordinary `train nDCG → test nDCG`**;
-- report natural-only and all-variant results;
-- no metric changes after seeing data.
-
-### Canonical result
+SciFact, NFCorpus and FiQA; MiniLM, BGE, BM25, BGE+BM25 hybrid and seven controlled degradations per dataset. Train qrels author contracts; test qrels evaluate downstream quality only.
 
 | metric | ABI | train nDCG baseline |
 |---|---:|---:|
-| mean per-dataset Spearman | **0.9697** | **0.9757** |
-| pooled delta Spearman vs BGE | **0.9573** | **0.9724** |
-| pooled delta Pearson | **0.9519** | **0.9850** |
-| pooled pairwise concordance | **0.9172** | **0.9400** |
+| mean per-dataset Spearman | 0.9697 | **0.9757** |
+| pooled delta Spearman | 0.9573 | **0.9724** |
+| pooled delta Pearson | 0.9519 | **0.9850** |
+| pooled pairwise concordance | 0.9172 | **0.9400** |
 
-Per-dataset all-variant Spearman:
+**Falsification:** current ABI is not a generally superior aggregate nDCG predictor. Keep ordinary IR validation.
 
-- SciFact: 0.9364 vs 0.9704;
-- NFCorpus: 0.9818 vs 0.9727;
-- FiQA: 0.9909 vs 0.9841.
+## Progressive Semantic Audit
 
-Mean result favors ordinary validation. Natural-only pooled Spearman is ABI 0.8333 vs baseline 0.8167, while Pearson is ABI 0.9513 vs baseline 0.9553; only nine non-BGE natural comparison points exist, so this is near parity rather than superiority evidence.
+Policy: hard clauses exhaustive; soft clauses weight-proportional; cached observations; predeclared looks; explicit error budget; exact fallback.
 
-**Falsification conclusion:** current Semantic ABI is not a generally superior aggregate nDCG predictor. Future ABI claims must focus on normative hard invariants, portability, local support/risk and change control while retaining ordinary IR metrics.
+Evidence:
 
-A separate parallel per-dataset run with different NFCorpus/FiQA query seeds reproduces the qualitative narrowing result.
+- Digits 1,500 clauses: **15/15** exact decision agreement, **12/15** early, mean early unique fraction **7.17%**;
+- procedural 10k/100k/250k: **10/10** exact decisions, **9/10** early;
+- representative 250k away-from-boundary decisions inspect **0.04–0.3992%** of clauses.
+
+Next baseline: Adaptive Learn-Then-Test/e-processes under non-iid/sliced faults and heterogeneous oracle costs.
+
+## Selective rollout
+
+SciFact/BGE at `delta=0.10`:
+
+- 10% failure SLA not certified;
+- preregistered exact rule certifies 15% with upper bound ~13.16%;
+- held-out acceptance 197/200;
+- realized accepted failure ~10.15%.
+
+## Repair economics
+
+SciFact/BGE 10% document corruption:
+
+- clean nDCG 0.7875 → corrupted ~0.6970;
+- budget25 coverage planner: 88% corrupted docs, ~33.9% lost-gap recovery;
+- random: ~7.3% corrupted, ~1.5% recovery;
+- no method reaches the preregistered 90% recovery target.
+
+Implementation-integrity canaries increase coverage and larger-budget recovery, but still do not reach 90%.
+
+### Fixed clause-incidence planner — failed independent gate
+
+Weights were frozen before four unseen fault scenarios. Budget50 preregistered gate required +0.05 mean recovery over best baseline and ≥3/4 wins/ties.
+
+Observed:
+
+- incidence ~0.215;
+- best baseline ~0.237;
+- lift ~-0.022;
+- wins/ties 2/4.
+
+**Not promoted as a repair improvement.**
+
+## Protocol TCK vs scientific evidence
+
+`spec/semantic-abi-oracle-v1-tck.json` fixes canonical contract, plan, manifest, snapshot and protocol-audit digests. The Python implementation must reproduce them across supported Python versions.
+
+Passing the TCK proves implementation compatibility with the protocol fixture. It does **not** by itself prove that a new retrieval paradigm preserves useful semantics; that requires a real benchmark such as the ColBERTv2 gate.
+
+## State-bound incremental evidence
+
+Incremental execution is software/mechanism evidence until tested under real provider state changes. Reuse is allowed only with deterministic behavior, non-empty `state_digest`, unchanged full manifest identity and parent snapshot/plan binding.
+
+Future economic benchmarks should report:
+
+- operation reuse fraction;
+- network/API calls avoided;
+- latency/cost reduction;
+- false-reuse rate (must remain zero under declared state changes).
 
 ## Contract Adequacy protocol
 
-Future release claims should predeclare required evidence axes through `ContractAdequacyRequirements`. Missing required evidence yields `insufficient_evidence`.
+Strong release claims should preregister required adequacy axes with `ContractAdequacyRequirements`. Missing required evidence must remain `insufficient_evidence`.
 
-Do not optimize contract adequacy against the same held-out set used to certify it.
-
-A high conformity score is never sufficient evidence of adequacy by itself.
-
-## Neural repair economics
-
-SciFact/BGE: 1,800 docs, 350 train queries, 200 untouched test queries.
-
-Clean ABI ~0.9480; nDCG ~0.7875.  
-10% corruption ABI ~0.8429; nDCG ~0.6970.
-
-Budget 25:
-
-- cost-aware coverage precision **88%** corrupted;
-- nDCG-gap recovery ~**33.9%**;
-- random precision ~**7.3%**;
-- random recovery ~**1.5%**.
-
-Budget 180: targeted best ~**50%** recovery vs random ~**9%**.
-
-**Negative gate:** no tested method reaches 90% downstream recovery. Conformity can recover before held-out nDCG.
-
-### Integrity canaries
-
-Without test qrels, document coverage rises from application-only **32.3%** to **67.0%** random-integrity and **72.5%** coverage-oriented integrity.
-
-At budget 100, best lost-nDCG recovery improves from ~62.3% to ~70.2–70.8%; budget 180 coverage-oriented integrity ~71.2%.
-
-Still no 90% recovery. Neighborhood violations can misattribute blame to healthy anchors, motivating the current clause-incidence-aware repair benchmark.
+Do not optimize adequacy against the same held-out set used to certify it.
 
 ## Real integration requirements
 
-Before production claims, test real Elasticsearch/BM25+dense hybrid, Qdrant, pgvector, Vespa/late interaction and relevant ANN backends.
+Before production claims, implement and measure real Elasticsearch, Qdrant, pgvector and Vespa/provider adapters. Report:
 
-Report p50/p95/p99 latency, memory/artifact size, API/GPU/token cost, fallback fraction, full-backfill cost avoided, and application/integrity contract roles separately.
+- protocol conformance / missing clauses;
+- p50/p95/p99 control-plane latency;
+- batch payload sizes;
+- provider/API/GPU cost;
+- incremental reuse savings;
+- fallback fraction;
+- backfill/reindex cost avoided;
+- application vs integrity roles;
+- state-digest invalidation behavior.
 
 ## Evidence freshness
 
-Promoted numbers are bound to GitHub Actions run/head identity, artifact SHA-256 and Git blob identity of evidence-sensitive sources. `tools/check_evidence_freshness.py` enforces source freshness in CI.
-
-## Falsification rule
-
-Narrow/kill a mechanism when representative evidence shows it fails to beat a simpler baseline, predictive value is no better than ordinary validation where superiority was claimed, safe coverage is economically useless, gains disappear across datasets/seeds, or conformity is used to imply adequacy without adequate evidence.
+Major promoted numbers are tied to Actions run/head identity, artifact SHA-256 and Git blob identity of evidence-sensitive sources. `tools/check_evidence_freshness.py` enforces those hashes in CI.
 
 A negative benchmark is a successful research result when it removes unjustified complexity.
