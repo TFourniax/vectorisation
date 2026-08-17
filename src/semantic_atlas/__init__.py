@@ -29,6 +29,7 @@ from .mutation import (
     permute_identities,
     pull_to_hub,
 )
+from .oracle import CallbackSemanticOracle, DenseVectorOracle, SemanticOracle, audit_contract
 from .release import EvidenceReference, ImplementationFingerprint, SemanticReleaseCertificate, make_release_certificate
 from .repair import (
     CoverageRepairCandidate,
@@ -83,6 +84,10 @@ __all__ = [
     "GateDecision",
     "capture_behavior_contract",
     "contract_from_labels",
+    "SemanticOracle",
+    "DenseVectorOracle",
+    "CallbackSemanticOracle",
+    "audit_contract",
     "RepairCandidate",
     "RepairPlan",
     "plan_repairs",
