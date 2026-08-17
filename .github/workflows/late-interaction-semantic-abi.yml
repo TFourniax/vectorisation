@@ -28,7 +28,7 @@ jobs:
           path: ~/.cache/huggingface
           key: semantic-abi-colbertv2-scifact-v1
       - run: python -m pip install --upgrade pip
-      - run: pip install -e '.[dev]' datasets pylate==1.5.0
+      - run: pip install -e '.[dev]' datasets 'pylate[voyager]==1.5.0'
       - name: Run real ColBERTv2 late-interaction portability gate
         env:
           HF_HUB_DISABLE_TELEMETRY: "1"
