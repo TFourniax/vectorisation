@@ -34,6 +34,7 @@ from semantic_repair_scifact_benchmark import (
 from semantic_abi_multidataset_benchmark import (
     build_contract,
     choose_corpus,
+    make_oracle,
     normalize,
     qrel_dict,
     score_metrics,
@@ -101,9 +102,7 @@ def build_integrity_contract(
             )
         )
         positive = int(order[0])
-        # Self has similarity -inf and is therefore the final rank. Use the
-        # final *non-self* document as the negative control.
-        negative = int(order[-2])
+        negative = int(order[-2])  # final non-self document; self is order[-1]
         contract.add(
             TripletClause(
                 f"d:{doc_ids[index]}",
@@ -146,8 +145,9 @@ class QueryDocumentOracle:
         self.doc_ids = list(doc_ids)
         self.q_lookup = {qid: i for i, qid in enumerate(self.train_ids)}
         self.d_lookup = {doc_id: i for i, doc_id in enumerate(self.doc_ids)}
-        self.qd = np.asarray(normalize(train_query_vectors) @ normalize(document_vectors).T, dtype=np.float64)
-        self.dd = np.asarray(normalize(document_vectors) @ normalize(document_vectors).T, dtype=np.float64)
+        docs = normalize(document_vectors)
+        self.qd = np.asarray(normalize(train_query_vectors) @ docs.T, dtype=np.float64)
+        self.dd = np.asarray(docs @ docs.T, dtype=np.float64)
         np.fill_diagonal(self.dd, -np.inf)
         self.object_ids = frozenset([
             *(f"q:{qid}" for qid in self.train_ids),
@@ -192,27 +192,9 @@ def contract_doc_coverage(contract: SemanticContract, doc_ids: list[str]) -> flo
     return len(touched) / max(1, len(universe))
 
 
-def evaluate(
-    contract: SemanticContract,
-    train_ids: list[str],
-    test_ids: list[str],
-    doc_ids: list[str],
-    train_qrels: dict[str, set[str]],
-    test_qrels: dict[str, set[str]],
-    train_q: np.ndarray,
-    test_q: np.ndarray,
-    docs: np.ndarray,
-    *,
-    label: str,
-) -> dict:
-    oracle = QueryDocumentOracle(train_ids, doc_ids, train_q, docs, implementation=label)
-    report = audit_contract(contract, oracle)
-    test_scores = np.asarray(normalize(test_q) @ normalize(docs).T, dtype=np.float64)
-    return {
-        "report": report,
-        "contract_score": float(report.score),
-        "test": score_metrics(test_scores, test_ids, doc_ids, test_qrels),
-    }
+def test_retrieval(test_q: np.ndarray, docs: np.ndarray, test_ids: list[str], doc_ids: list[str], test_qrels: dict[str, set[str]]) -> dict[str, float]:
+    scores = np.asarray(normalize(test_q) @ normalize(docs).T, dtype=np.float64)
+    return score_metrics(scores, test_ids, doc_ids, test_qrels)
 
 
 def main() -> None:
@@ -260,30 +242,37 @@ def main() -> None:
         "application+coverage-integrity": merge_contracts(application, integrity_coverage),
     }
 
-    clean_eval = evaluate(application, train_ids, test_ids, doc_ids, train_qrels, test_qrels, train_q, test_q, clean_docs, label="clean")
-    clean_ndcg = float(clean_eval["test"]["ndcg@10"])
+    # Clean application score is evaluated through the query->document oracle;
+    # integrity doc->doc similarities are unnecessary here.
+    clean_train_scores = np.asarray(train_q @ clean_docs.T, dtype=np.float64)
+    clean_report = audit_contract(application, make_oracle("clean-bge", train_ids, doc_ids, clean_train_scores))
+    clean_test = test_retrieval(test_q, clean_docs, test_ids, doc_ids, test_qrels)
+    clean_ndcg = float(clean_test["ndcg@10"])
+
     corrupted_docs, corrupted_tuple = corrupt_by_permutation(clean_docs, fraction=args.corruption_fraction, seed=args.seed)
     corrupted_indices = set(corrupted_tuple)
+    corrupted_oracle = QueryDocumentOracle(train_ids, doc_ids, train_q, corrupted_docs, implementation="corrupted-bge")
+    corrupted_test = test_retrieval(test_q, corrupted_docs, test_ids, doc_ids, test_qrels)
+    corrupted_ndcg = float(corrupted_test["ndcg@10"])
     budgets = [int(v) for v in args.budgets.split(",") if v.strip()]
     report_rows = []
 
     for contract_name, contract in contracts.items():
-        corrupted_eval = evaluate(contract, train_ids, test_ids, doc_ids, train_qrels, test_qrels, train_q, test_q, corrupted_docs, label=f"corrupted:{contract_name}")
-        corrupted_ndcg = float(corrupted_eval["test"]["ndcg@10"])
-        report = corrupted_eval["report"]
+        # One full audit per candidate contract creates the diagnostic signal.
+        # Planner comparisons below must not repeatedly recompute that audit.
+        report = audit_contract(contract, corrupted_oracle, implementation=f"corrupted:{contract_name}")
         curves = []
         for budget in budgets:
             methods = {}
             for planner in ("highest-risk", "risk-diversity", "coverage"):
                 selected = planner_selection(report, corrupted_docs, doc_ids, planner=planner, budget=budget, seed=args.seed + budget)
                 repaired = apply_repairs(corrupted_docs, clean_docs, doc_ids, selected)
-                state = evaluate(contract, train_ids, test_ids, doc_ids, train_qrels, test_qrels, train_q, test_q, repaired, label=f"{contract_name}:{planner}:{budget}")
-                ndcg = float(state["test"]["ndcg@10"])
+                metrics = test_retrieval(test_q, repaired, test_ids, doc_ids, test_qrels)
+                ndcg = float(metrics["ndcg@10"])
                 methods[planner] = {
                     "corruption_precision": selected_corruption_precision(selected, corrupted_indices, doc_ids),
-                    "contract_score": float(state["contract_score"]),
                     "heldout_ndcg": ndcg,
-                    "heldout_recall": float(state["test"]["recall@10"]),
+                    "heldout_recall": float(metrics["recall@10"]),
                     "ndcg_recovery_fraction": recovery_fraction(ndcg, corrupted_ndcg, clean_ndcg),
                 }
             curves.append({"budget": budget, "methods": methods})
@@ -291,8 +280,7 @@ def main() -> None:
             "contract": contract_name,
             "clauses": len(contract.clauses),
             "document_coverage": contract_doc_coverage(contract, doc_ids),
-            "corrupted_contract_score": float(corrupted_eval["contract_score"]),
-            "corrupted_heldout_ndcg": corrupted_ndcg,
+            "corrupted_contract_score": float(report.score),
             "curves": curves,
         })
 
@@ -306,8 +294,9 @@ def main() -> None:
         "corruption_fraction": args.corruption_fraction,
         "corrupted_documents": len(corrupted_indices),
         "integrity_anchors": args.integrity_anchors,
-        "clean_application_contract_score": float(clean_eval["contract_score"]),
-        "clean_heldout_ndcg": clean_ndcg,
+        "clean_application_contract_score": float(clean_report.score),
+        "clean_heldout_retrieval": clean_test,
+        "corrupted_heldout_retrieval": corrupted_test,
         "contracts": report_rows,
         "interpretation_guardrail": (
             "Integrity canaries are implementation-specific diagnostics and must not be confused with application-semantic truth. "
