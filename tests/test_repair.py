@@ -1,7 +1,7 @@
 import numpy as np
 
-from semantic_atlas.contracts import contract_from_labels
-from semantic_atlas.repair import plan_repairs
+from semantic_atlas.contracts import ClauseResult, ContractReport, contract_from_labels
+from semantic_atlas.repair import plan_repairs, plan_repairs_by_coverage
 
 
 def normalize(x):
@@ -32,3 +32,35 @@ def test_repair_planner_enriches_for_corrupted_objects():
     # Random expectation is ~6.4 corrupt objects in 30 draws from 140.
     assert len(selected & corrupt) >= 12
     assert plan.risk_mass_coverage > 0.20
+
+
+def test_cost_aware_planner_maximizes_known_violation_coverage():
+    violations = [
+        ClauseResult(0, "triplet", 0.0, False, False, 3.0, ("a", "b", "c"), {}),
+        ClauseResult(1, "neighbor", 0.2, False, False, 2.0, ("a", "d"), {}),
+        ClauseResult(2, "triplet", 0.5, False, True, 2.0, ("e", "f", "g"), {}),
+    ]
+    report = ContractReport(
+        contract_name="demo",
+        contract_digest="digest",
+        implementation="candidate",
+        score=0.4,
+        hard_pass=False,
+        clause_results=violations,
+        object_risk={"a": 0.9, "b": 0.5, "c": 0.4, "d": 0.6, "e": 0.8, "f": 0.4, "g": 0.4},
+        evaluated_clauses=3,
+        missing_clauses=0,
+    )
+    plan = plan_repairs_by_coverage(
+        report,
+        budget=2.0,
+        costs={"a": 1.0, "b": 1.0, "c": 1.0, "d": 1.0, "e": 1.0, "f": 3.0, "g": 3.0},
+        risk_bonus_weight=0.0,
+    )
+    selected = [candidate.object_id for candidate in plan.candidates]
+
+    # a touches the two highest-mass soft violations; e then covers the hard one.
+    assert selected == ["a", "e"]
+    assert plan.spent == 2.0
+    assert plan.violation_mass_coverage == 1.0
+    assert set(plan.covered_clause_indices) == {0, 1, 2}
