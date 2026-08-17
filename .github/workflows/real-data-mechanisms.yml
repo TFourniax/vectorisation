@@ -9,6 +9,7 @@ on:
       - benchmarks/digits_coordinate_benchmark.py
       - benchmarks/semantic_abi_digits_benchmark.py
       - benchmarks/semantic_diff_digits_benchmark.py
+      - benchmarks/semantic_mutation_digits_benchmark.py
       - .github/workflows/real-data-mechanisms.yml
 
 jobs:
@@ -29,6 +30,8 @@ jobs:
         run: python benchmarks/semantic_abi_digits_benchmark.py | tee digits-abi.json
       - name: Semantic Diff active contract discovery benchmark
         run: python benchmarks/semantic_diff_digits_benchmark.py | tee digits-semantic-diff.json
+      - name: Semantic ABI mutation adequacy benchmark
+        run: python benchmarks/semantic_mutation_digits_benchmark.py | tee digits-semantic-mutation.json
       - uses: actions/upload-artifact@v4
         with:
           name: real-data-mechanism-evidence
@@ -36,4 +39,5 @@ jobs:
             digits-coordinate.json
             digits-abi.json
             digits-semantic-diff.json
+            digits-semantic-mutation.json
           if-no-files-found: error
