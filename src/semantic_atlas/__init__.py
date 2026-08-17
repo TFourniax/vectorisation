@@ -53,6 +53,14 @@ from .semantic_diff import ContractQuestion, ObjectSemanticDiff, RepresentationD
 from .support import ContractCoverage, LocalSemanticRisk, contract_coverage, estimate_local_semantic_risk
 from .transition_io import load_transition, save_transition
 from .transition_policy import EvidenceGatedTransition, TransitionValidation
+from .witness import (
+    SemanticWitnessSet,
+    WitnessEvaluation,
+    WitnessScenario,
+    WitnessScenarioEvaluation,
+    build_semantic_witness_set,
+    evaluate_clause_subset,
+)
 
 __all__ = [
     "AtlasIndex",
@@ -132,4 +140,10 @@ __all__ = [
     "add_vector_noise",
     "default_semantic_mutations",
     "mutation_test",
+    "WitnessScenario",
+    "WitnessScenarioEvaluation",
+    "WitnessEvaluation",
+    "SemanticWitnessSet",
+    "evaluate_clause_subset",
+    "build_semantic_witness_set",
 ]
