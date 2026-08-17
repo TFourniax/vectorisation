@@ -45,7 +45,9 @@ def test_change_manager_runs_same_lifecycle_over_non_vector_oracle():
     def similarity(left, right):
         if left == right:
             return 1.0
-        return values.get((left, right), values[(right, left)])
+        if (left, right) in values:
+            return values[(left, right)]
+        return values[(right, left)]
 
     neighbors = {"a": ("b", "c"), "b": ("a", "c"), "c": ("b", "a")}
     oracle = CallbackSemanticOracle(
