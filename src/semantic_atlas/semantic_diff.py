@@ -5,6 +5,8 @@ from typing import Mapping, Sequence
 
 import numpy as np
 
+from .contracts import TripletClause
+
 _EPS = 1e-12
 
 
@@ -76,15 +78,32 @@ class ContractQuestion:
             f"the candidate prefers {self.new_preference!r}."
         )
 
+    def resolve(
+        self,
+        preferred: str,
+        *,
+        margin: float = 0.0,
+        weight: float = 1.0,
+        hard: bool = False,
+        source: str = "semantic-diff-human-review",
+    ) -> TripletClause:
+        """Turn one reviewed disagreement into a coordinate-free ABI clause."""
+        if preferred not in {self.option_a, self.option_b}:
+            raise ValueError("preferred must be one of the two reviewed options")
+        negative = self.option_b if preferred == self.option_a else self.option_a
+        return TripletClause(
+            self.anchor_id,
+            preferred,
+            negative,
+            margin=margin,
+            weight=weight,
+            hard=hard,
+            source=source,
+        )
 
-def semantic_diff(
-    old_vectors: Mapping[str, np.ndarray],
-    new_vectors: Mapping[str, np.ndarray],
-    *,
-    k: int = 10,
-) -> RepresentationDiff:
+
+def semantic_diff(old_vectors: Mapping[str, np.ndarray], new_vectors: Mapping[str, np.ndarray], *, k: int = 10) -> RepresentationDiff:
     """Compare representation topology without assuming coordinate alignment."""
-
     ids = sorted(set(old_vectors) & set(new_vectors))
     if len(ids) < 2:
         return RepresentationDiff(len(ids), int(k), 1.0, 0.0, 0.0, 1.0, [])
@@ -93,7 +112,6 @@ def semantic_diff(
     old_n = _neighbor_rows(old, k)
     new_n = _neighbor_rows(new, k)
     id_by_idx = np.asarray(ids, dtype=object)
-
     old_sets = [set(map(int, row)) for row in old_n]
     new_sets = [set(map(int, row)) for row in new_n]
     old_recip = [set(j for j in row if i in old_sets[j]) for i, row in enumerate(old_sets)]
@@ -108,18 +126,7 @@ def semantic_diff(
         reciprocal_union = old_recip[i] | new_recip[i]
         reciprocal_retention = 1.0 if not reciprocal_union else len(old_recip[i] & new_recip[i]) / len(reciprocal_union)
         severity = float(np.clip(0.55 * churn + 0.25 * float(top1_changed) + 0.20 * (1.0 - reciprocal_retention), 0.0, 1.0))
-        rows.append(
-            ObjectSemanticDiff(
-                object_id=object_id,
-                neighbor_jaccard=float(jaccard),
-                neighbor_churn=float(churn),
-                top1_changed=top1_changed,
-                reciprocal_retention=float(reciprocal_retention),
-                severity=severity,
-                old_neighbors=tuple(str(x) for x in id_by_idx[old_n[i]]),
-                new_neighbors=tuple(str(x) for x in id_by_idx[new_n[i]]),
-            )
-        )
+        rows.append(ObjectSemanticDiff(object_id, float(jaccard), float(churn), top1_changed, float(reciprocal_retention), severity, tuple(str(x) for x in id_by_idx[old_n[i]]), tuple(str(x) for x in id_by_idx[new_n[i]])))
 
     return RepresentationDiff(
         shared_objects=len(ids),
@@ -148,7 +155,6 @@ def propose_contract_questions(
     disagreement into a reviewable ordinal judgment that can become a future
     ``TripletClause`` after human/domain validation.
     """
-
     ids = sorted(set(old_vectors) & set(new_vectors))
     if len(ids) < 3 or limit <= 0:
         return []
@@ -178,20 +184,7 @@ def propose_contract_questions(
             continue
         anchor_severity = severity.get(anchor_id, 0.0)
         priority = float(disagreement * (0.4 + 0.6 * anchor_severity))
-        questions.append(
-            ContractQuestion(
-                anchor_id=anchor_id,
-                option_a=ids[old_top],
-                option_b=ids[new_top],
-                old_preference=ids[old_top],
-                new_preference=ids[new_top],
-                old_margin=old_margin,
-                new_margin=new_margin,
-                disagreement=disagreement,
-                anchor_severity=anchor_severity,
-                priority=priority,
-            )
-        )
+        questions.append(ContractQuestion(anchor_id, ids[old_top], ids[new_top], ids[old_top], ids[new_top], old_margin, new_margin, disagreement, anchor_severity, priority))
 
     questions.sort(key=lambda row: (-row.priority, row.anchor_id))
     return questions[: int(limit)]
