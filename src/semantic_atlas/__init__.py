@@ -36,6 +36,7 @@ from .risk_control import (
     calibrate_semantic_risk,
 )
 from .risk_slices import SliceRiskPortfolio, calibrate_semantic_risk_by_slice
+from .semantic_diff import ContractQuestion, ObjectSemanticDiff, RepresentationDiff, propose_contract_questions, semantic_diff
 from .support import ContractCoverage, LocalSemanticRisk, contract_coverage, estimate_local_semantic_risk
 from .transition_io import load_transition, save_transition
 
@@ -94,4 +95,9 @@ __all__ = [
     "EvidenceReference",
     "SemanticReleaseCertificate",
     "make_release_certificate",
+    "ObjectSemanticDiff",
+    "RepresentationDiff",
+    "ContractQuestion",
+    "semantic_diff",
+    "propose_contract_questions",
 ]
