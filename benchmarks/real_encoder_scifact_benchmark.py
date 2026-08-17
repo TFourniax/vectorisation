@@ -16,6 +16,8 @@ from semantic_atlas import (
     TransitionAtlas,
     TripletClause,
     calibrate_semantic_risk,
+    contract_coverage,
+    estimate_local_semantic_risk,
 )
 
 
@@ -76,50 +78,27 @@ def _select_query_ids(qrels: dict[str, set[str]], limit: int, seed: int) -> list
     return ids[: min(limit, len(ids))]
 
 
-def _build_contract(
-    query_ids: list[str],
-    qrels: dict[str, set[str]],
-    doc_ids: list[str],
-    *,
-    seed: int,
-) -> SemanticContract:
+def _build_contract(query_ids: list[str], qrels: dict[str, set[str]], doc_ids: list[str], *, seed: int) -> SemanticContract:
     rng = np.random.default_rng(seed)
     docs = np.asarray(doc_ids, dtype=object)
+    doc_universe = set(doc_ids)
     contract = SemanticContract(
         name="scifact-application-semantics",
         version="1",
         metadata={"dataset": "mteb/scifact", "semantics": "qrels relevance"},
     )
     for qid in query_ids:
-        relevant = sorted(qrels.get(qid, set()) & set(doc_ids))
+        relevant = sorted(qrels.get(qid, set()) & doc_universe)
         if not relevant:
             continue
         qkey = f"q:{qid}"
         expected = tuple(f"d:{doc_id}" for doc_id in relevant)
-        contract.add(
-            NeighborClause(
-                qkey,
-                expected,
-                min_recall=1.0 / len(expected),
-                candidate_k=10,
-                weight=2.0,
-                source="scifact_qrels",
-            )
-        )
+        contract.add(NeighborClause(qkey, expected, min_recall=1.0 / len(expected), candidate_k=10, weight=2.0, source="scifact_qrels"))
         nonrelevant = docs[~np.isin(docs, np.asarray(relevant, dtype=object))]
         if len(nonrelevant):
             negative = str(rng.choice(nonrelevant))
             positive = str(rng.choice(np.asarray(relevant, dtype=object)))
-            contract.add(
-                TripletClause(
-                    qkey,
-                    f"d:{positive}",
-                    f"d:{negative}",
-                    margin=0.0,
-                    weight=1.0,
-                    source="scifact_qrels",
-                )
-            )
+            contract.add(TripletClause(qkey, f"d:{positive}", f"d:{negative}", margin=0.0, weight=1.0, source="scifact_qrels"))
     return contract
 
 
@@ -157,10 +136,8 @@ def main() -> None:
     train_qrels = _qrel_dict(train_qrel_rows)
     test_qrels = _qrel_dict(test_qrel_rows)
 
-    train_ids = _select_query_ids(train_qrels, args.train_queries, args.seed)
-    test_ids = _select_query_ids(test_qrels, args.test_queries, args.seed + 1)
-    train_ids = [qid for qid in train_ids if qid in queries]
-    test_ids = [qid for qid in test_ids if qid in queries]
+    train_ids = [qid for qid in _select_query_ids(train_qrels, args.train_queries, args.seed) if qid in queries]
+    test_ids = [qid for qid in _select_query_ids(test_qrels, args.test_queries, args.seed + 1) if qid in queries]
 
     required_docs: set[str] = set()
     for qid in train_ids:
@@ -172,8 +149,7 @@ def main() -> None:
     rng = np.random.default_rng(args.seed)
     distractors = [doc_id for doc_id in sorted(corpus) if doc_id not in required_docs]
     rng.shuffle(distractors)
-    doc_ids = sorted(required_docs) + distractors[: max(0, args.max_docs - len(required_docs))]
-    doc_ids = doc_ids[: args.max_docs]
+    doc_ids = (sorted(required_docs) + distractors[: max(0, args.max_docs - len(required_docs))])[: args.max_docs]
     doc_texts = [corpus[doc_id] for doc_id in doc_ids]
     train_texts = [queries[qid] for qid in train_ids]
     test_texts = [queries[qid] for qid in test_ids]
@@ -182,10 +158,8 @@ def main() -> None:
     new_model = SentenceTransformer(args.new_model)
 
     old_docs = _normalize(old_model.encode(doc_texts, batch_size=64, show_progress_bar=True, normalize_embeddings=True))
-    old_train_q = _normalize(old_model.encode(train_texts, batch_size=64, show_progress_bar=True, normalize_embeddings=True))
     old_test_q = _normalize(old_model.encode(test_texts, batch_size=64, show_progress_bar=True, normalize_embeddings=True))
 
-    # BGE v1.5 recommends this instruction for short-query -> passage retrieval.
     new_prefix = "Represent this sentence for searching relevant passages: " if "bge" in args.new_model.lower() else ""
     new_docs = _normalize(new_model.encode(doc_texts, batch_size=64, show_progress_bar=True, normalize_embeddings=True))
     new_train_q = _normalize(new_model.encode([new_prefix + text for text in train_texts], batch_size=64, show_progress_bar=True, normalize_embeddings=True))
@@ -193,16 +167,7 @@ def main() -> None:
 
     anchor_count = max(20, int(round(len(doc_ids) * args.anchor_fraction)))
     anchor_idx = np.sort(rng.choice(len(doc_ids), size=min(anchor_count, len(doc_ids)), replace=False))
-    transition = TransitionAtlas.fit(
-        "new",
-        "old",
-        new_docs[anchor_idx],
-        old_docs[anchor_idx],
-        chart_size=48,
-        chart_overlap=1.5,
-        validation_fraction=0.20,
-        validation_seed=args.seed,
-    )
+    transition = TransitionAtlas.fit("new", "old", new_docs[anchor_idx], old_docs[anchor_idx], chart_size=48, chart_overlap=1.5, validation_fraction=0.20, validation_seed=args.seed)
     local_test_q = _normalize(np.vstack([transition.map(vector).vector for vector in new_test_q]))
     global_test_q = _normalize(np.vstack([transition.global_map.map(vector) for vector in new_test_q]))
 
@@ -214,18 +179,21 @@ def main() -> None:
     contract = _build_contract(contract_ids, train_qrels, doc_ids, seed=args.seed)
     candidate_vectors = _combined_vectors(contract_ids, contract_query_vectors, doc_ids, new_docs)
     report = contract.audit(candidate_vectors, implementation=args.new_model)
+    coverage = contract_coverage(contract, candidate_vectors)
     landmarks = {object_id: candidate_vectors[object_id] for object_id in report.object_risk if object_id in candidate_vectors}
 
     doc_lookup = {doc_id: i for i, doc_id in enumerate(doc_ids)}
     calibration_events: list[CalibrationEvent] = []
+    calibration_support: list[float] = []
     for i, qid in enumerate(calibration_ids):
         relevant = {doc_lookup[d] for d in train_qrels.get(qid, set()) if d in doc_lookup}
         if not relevant:
             continue
-        proxy = report.local_risk(calibration_query_vectors[i], landmarks)
+        local = estimate_local_semantic_risk(report, calibration_query_vectors[i], landmarks)
+        calibration_support.append(local.support)
         top = _rank(calibration_query_vectors[i], new_docs, 10)
         loss = 0.0 if any(int(idx) in relevant for idx in top) else 1.0
-        calibration_events.append(CalibrationEvent(proxy, loss, object_id=f"q:{qid}", group="scifact-train"))
+        calibration_events.append(CalibrationEvent(local.risk, loss, object_id=f"q:{qid}", group="scifact-train"))
 
     certificate = calibrate_semantic_risk(
         calibration_events,
@@ -238,6 +206,7 @@ def main() -> None:
     )
 
     selective_losses: list[float] = []
+    heldout_support: list[float] = []
     selective_total = 0
     accepted_total = 0
     for i, qid in enumerate(test_ids):
@@ -245,8 +214,9 @@ def main() -> None:
         if not relevant:
             continue
         selective_total += 1
-        proxy = report.local_risk(new_test_q[i], landmarks)
-        if not certificate.accepts(proxy):
+        local = estimate_local_semantic_risk(report, new_test_q[i], landmarks)
+        heldout_support.append(local.support)
+        if not certificate.accepts(local.risk):
             continue
         accepted_total += 1
         top = _rank(new_test_q[i], new_docs, 10)
@@ -276,14 +246,17 @@ def main() -> None:
         "semantic_abi": {
             "contract_digest": contract.digest,
             "contract_clauses": len(contract.clauses),
+            "contract_object_coverage": coverage.object_coverage,
             "candidate_score": float(report.score),
             "hard_pass": bool(report.hard_pass),
             "calibration_events": len(calibration_events),
+            "mean_calibration_support": float(np.mean(calibration_support)) if calibration_support else 0.0,
             "risk_certificate": asdict(certificate),
             "held_out_test_accepted": accepted_total,
             "held_out_test_total": selective_total,
             "held_out_test_coverage": accepted_total / max(1, selective_total),
             "held_out_test_realized_risk": float(np.mean(selective_losses)) if selective_losses else None,
+            "mean_held_out_support": float(np.mean(heldout_support)) if heldout_support else 0.0,
         },
     }
 
