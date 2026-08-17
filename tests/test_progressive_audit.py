@@ -3,13 +3,14 @@ from semantic_atlas.oracle import CallbackSemanticOracle
 from semantic_atlas.progressive_audit import progressive_semantic_audit
 
 
-def make_system(count=300, broken=()):
+def make_system(count=300, broken=(), hard=()):
     broken = set(broken)
+    hard = set(hard)
     clauses = []
     objects = set()
     for i in range(count):
         anchor, positive, negative = f"a{i}", f"p{i}", f"n{i}"
-        clauses.append(TripletClause(anchor, positive, negative, weight=1.0))
+        clauses.append(TripletClause(anchor, positive, negative, weight=1.0, hard=i in hard))
         objects.update((anchor, positive, negative))
     contract = SemanticContract("progressive", "1", clauses=clauses)
 
@@ -88,8 +89,7 @@ def test_progressive_audit_falls_back_to_exact_full_decision_near_boundary():
 
 
 def test_progressive_audit_evaluates_hard_clauses_first():
-    contract, oracle = make_system(50, broken={0})
-    contract.clauses[0].hard = True
+    contract, oracle = make_system(50, broken={0}, hard={0})
     result = progressive_semantic_audit(contract, oracle, max_soft_violation_rate=0.20)
     assert result.decision == "fail"
     assert not result.hard_pass
