@@ -2,11 +2,6 @@ name: multidataset-semantic-abi
 
 on:
   workflow_dispatch:
-  push:
-    branches: [agent/semantic-manifold-atlas]
-    paths:
-      - benchmarks/semantic_abi_multidataset_benchmark.py
-      - .github/workflows/multidataset-semantic-abi.yml
 
 jobs:
   benchmark:
@@ -24,7 +19,7 @@ jobs:
           key: semantic-abi-multidataset-minilm-bge-v1
       - run: python -m pip install --upgrade pip
       - run: pip install -e '.[dev]' sentence-transformers datasets huggingface-hub
-      - name: Run falsification benchmark
+      - name: Run canonical sequential replication
         env:
           HF_HUB_DISABLE_TELEMETRY: "1"
           TOKENIZERS_PARALLELISM: "false"
