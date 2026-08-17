@@ -23,7 +23,7 @@ from pathlib import Path
 
 import numpy as np
 
-from semantic_atlas import CallbackSemanticOracle, NeighborClause, SemanticContract, TripletClause, audit_contract
+from semantic_atlas import NeighborClause, SemanticContract, TripletClause, audit_contract
 from semantic_repair_scifact_benchmark import (
     apply_repairs,
     corrupt_by_permutation,
@@ -40,8 +40,6 @@ from semantic_abi_multidataset_benchmark import (
     select_ids,
 )
 
-_EPS = 1e-12
-
 
 def farthest_first(vectors: np.ndarray, count: int, *, seed: int) -> list[int]:
     """Deterministic coverage-oriented anchors; never sees corruption labels."""
@@ -51,7 +49,6 @@ def farthest_first(vectors: np.ndarray, count: int, *, seed: int) -> list[int]:
     first = int(rng.integers(0, len(x)))
     chosen = [first]
     best_similarity = x @ x[first]
-    # Select the point least similar to its closest already-selected anchor.
     for _ in range(1, count):
         index = int(np.argmin(best_similarity))
         chosen.append(index)
@@ -104,7 +101,9 @@ def build_integrity_contract(
             )
         )
         positive = int(order[0])
-        negative = int(order[-1])
+        # Self has similarity -inf and is therefore the final rank. Use the
+        # final *non-self* document as the negative control.
+        negative = int(order[-2])
         contract.add(
             TripletClause(
                 f"d:{doc_ids[index]}",
