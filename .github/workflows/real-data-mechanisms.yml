@@ -11,6 +11,9 @@ on:
       - benchmarks/semantic_diff_digits_benchmark.py
       - benchmarks/semantic_mutation_digits_benchmark.py
       - benchmarks/semantic_witness_digits_benchmark.py
+      - src/semantic_atlas/witness.py
+      - src/semantic_atlas/mutation.py
+      - src/semantic_atlas/contracts.py
       - .github/workflows/real-data-mechanisms.yml
 
 jobs:
