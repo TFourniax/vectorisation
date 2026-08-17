@@ -8,6 +8,8 @@ from .adequacy import (
     assess_contract_adequacy,
 )
 from .alignment import RoutedTransport, TransitionAtlas, TransitionDiagnostics, TransitionGraph
+from .attestation_v1 import AttestedEvidence, SemanticProtocolAttestation, make_protocol_attestation
+from .compatibility_v1 import PlanCompatibilityIssue, PlanCompatibilityReport, check_plan_compatibility
 from .conformance import ConformanceIssue, OracleConformanceReport, check_oracle_conformance
 from .contract_lint import ContractIssue, ContractLintReport, lint_contract
 from .contracts import (
@@ -26,6 +28,7 @@ from .core import AtlasIndex, AtlasRecord, SearchHit, SearchPolicy
 from .drift import DriftPoint, DriftReport, compare_indexes
 from .embed import FeatureHashEmbedder
 from .fabric import FabricRecord, SemanticCell, SemanticFabric, SpaceSpec
+from .incremental_v1 import IncrementalExecutionResult, IncrementalExecutionStats, execute_contract_plan_incremental
 from .late_interaction import LateInteractionOracleV1, MaxSimExplanation, maxsim_score
 from .lifecycle import AssessmentDelta, ChangeAssessment, SemanticChangeManager, compare_assessments
 from .mutation import (
@@ -192,4 +195,13 @@ __all__ = [
     "HttpJsonTransport",
     "InProcessProtocolTransport",
     "dispatch_protocol_request",
+    "AttestedEvidence",
+    "SemanticProtocolAttestation",
+    "make_protocol_attestation",
+    "PlanCompatibilityIssue",
+    "PlanCompatibilityReport",
+    "check_plan_compatibility",
+    "IncrementalExecutionStats",
+    "IncrementalExecutionResult",
+    "execute_contract_plan_incremental",
 ]
