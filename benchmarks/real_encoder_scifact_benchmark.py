@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 from dataclasses import asdict
+import hashlib
 import json
 import math
 from pathlib import Path
@@ -9,16 +10,9 @@ from typing import Iterable
 
 import numpy as np
 
-from semantic_atlas import (
-    CalibrationEvent,
-    NeighborClause,
-    SemanticContract,
-    TransitionAtlas,
-    TripletClause,
-    calibrate_semantic_risk,
-    contract_coverage,
-    estimate_local_semantic_risk,
-)
+from semantic_atlas import CalibrationEvent, NeighborClause, SemanticContract, TransitionAtlas, TripletClause, calibrate_semantic_risk
+from semantic_atlas.release import EvidenceReference, ImplementationFingerprint, make_release_certificate
+from semantic_atlas.support import contract_coverage, estimate_local_semantic_risk
 
 
 def _normalize(x: np.ndarray) -> np.ndarray:
@@ -82,11 +76,7 @@ def _build_contract(query_ids: list[str], qrels: dict[str, set[str]], doc_ids: l
     rng = np.random.default_rng(seed)
     docs = np.asarray(doc_ids, dtype=object)
     doc_universe = set(doc_ids)
-    contract = SemanticContract(
-        name="scifact-application-semantics",
-        version="1",
-        metadata={"dataset": "mteb/scifact", "semantics": "qrels relevance"},
-    )
+    contract = SemanticContract(name="scifact-application-semantics", version="1", metadata={"dataset": "mteb/scifact", "semantics": "qrels relevance"})
     for qid in query_ids:
         relevant = sorted(qrels.get(qid, set()) & doc_universe)
         if not relevant:
@@ -124,6 +114,7 @@ def main() -> None:
     args = parser.parse_args()
 
     from datasets import load_dataset
+    from huggingface_hub import model_info
     from sentence_transformers import SentenceTransformer
 
     corpus_rows = load_dataset("mteb/scifact", "corpus", split="corpus")
@@ -135,7 +126,6 @@ def main() -> None:
     queries = {str(row["_id"]): str(row["text"]) for row in query_rows}
     train_qrels = _qrel_dict(train_qrel_rows)
     test_qrels = _qrel_dict(test_qrel_rows)
-
     train_ids = [qid for qid in _select_query_ids(train_qrels, args.train_queries, args.seed) if qid in queries]
     test_ids = [qid for qid in _select_query_ids(test_qrels, args.test_queries, args.seed + 1) if qid in queries]
 
@@ -154,6 +144,8 @@ def main() -> None:
     train_texts = [queries[qid] for qid in train_ids]
     test_texts = [queries[qid] for qid in test_ids]
 
+    old_revision = str(model_info(args.old_model).sha or "unknown")
+    new_revision = str(model_info(args.new_model).sha or "unknown")
     old_model = SentenceTransformer(args.old_model)
     new_model = SentenceTransformer(args.new_model)
 
@@ -195,20 +187,11 @@ def main() -> None:
         loss = 0.0 if any(int(idx) in relevant for idx in top) else 1.0
         calibration_events.append(CalibrationEvent(local.risk, loss, object_id=f"q:{qid}", group="scifact-train"))
 
-    certificate = calibrate_semantic_risk(
-        calibration_events,
-        target_risk=args.target_risk,
-        delta=args.delta,
-        threshold_candidates=8,
-        min_selection=max(10, len(calibration_events) // 6),
-        min_certification=max(15, len(calibration_events) // 5),
-        seed=args.seed,
-    )
+    certificate = calibrate_semantic_risk(calibration_events, target_risk=args.target_risk, delta=args.delta, threshold_candidates=8, min_selection=max(10, len(calibration_events) // 6), min_certification=max(15, len(calibration_events) // 5), seed=args.seed)
 
     selective_losses: list[float] = []
     heldout_support: list[float] = []
-    selective_total = 0
-    accepted_total = 0
+    selective_total = accepted_total = 0
     for i, qid in enumerate(test_ids):
         relevant = {doc_lookup[d] for d in test_qrels.get(qid, set()) if d in doc_lookup}
         if not relevant:
@@ -225,7 +208,9 @@ def main() -> None:
     result = {
         "dataset": "mteb/scifact",
         "old_model": args.old_model,
+        "old_revision": old_revision,
         "new_model": args.new_model,
+        "new_revision": new_revision,
         "old_dimensions": int(old_docs.shape[1]),
         "new_dimensions": int(new_docs.shape[1]),
         "documents": len(doc_ids),
@@ -266,6 +251,27 @@ def main() -> None:
     npz = Path(args.npz)
     npz.parent.mkdir(parents=True, exist_ok=True)
     np.savez_compressed(npz, old_docs=old_docs, new_docs=new_docs, new_queries=new_test_q)
+
+    preprocessing_payload = f"query_prefix={new_prefix}|normalize_embeddings=true|sentence_transformers_default_pooling"
+    fingerprint = ImplementationFingerprint(
+        implementation_id=f"{args.new_model}@{new_revision[:12]}",
+        model_id=args.new_model,
+        revision=new_revision,
+        dimensions=int(new_docs.shape[1]),
+        preprocessing_digest=hashlib.sha256(preprocessing_payload.encode("utf-8")).hexdigest(),
+        metadata={"dataset": "mteb/scifact", "legacy_model": args.old_model, "legacy_revision": old_revision},
+    )
+    evidence = EvidenceReference(name=output.name, sha256=hashlib.sha256(output.read_bytes()).hexdigest(), kind="real-neural-encoder-benchmark")
+    release_certificate = make_release_certificate(
+        fingerprint,
+        report,
+        coverage,
+        certificate,
+        evidence=[evidence],
+        status="certified" if certificate.certified and report.hard_pass else "uncertified",
+        metadata={"held_out_test_coverage": result["semantic_abi"]["held_out_test_coverage"], "held_out_test_realized_risk": result["semantic_abi"]["held_out_test_realized_risk"]},
+    )
+    release_certificate.save(output.parent / "semantic_release_certificate.json")
     print(json.dumps(result, indent=2, sort_keys=True))
 
 
