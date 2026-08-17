@@ -2,300 +2,338 @@
 
 ## Thesis
 
-A vector is not the data and it is not the meaning of the data. It is one coordinate emitted by one representation implementation at one point in time.
+A vector is neither the identity nor the meaning of a data object. It is one representation emitted by one implementation at one point in time.
 
-Semantic ABI asks a different production question from embedding alignment:
+Semantic ABI asks:
 
-> **What must remain semantically true when the representation implementation changes?**
-
-A migration can align coordinates well and still break important application behavior. Conversely, a new model can reorder many neighbors while preserving or improving the semantics the application actually needs.
-
-The proposed abstraction is therefore:
+> **What must remain semantically true when the representation/retrieval implementation changes?**
 
 ```text
-stable logical objects + semantic contract
+stable logical objects + Semantic Contract
                   |
-        +---------+----------+
-        |         |          |
-      dense     sparse      graph       ... future representation
-      model A   model B    symbolic
+            SemanticOracle
+        +---------+---------+
+        |         |         |
+      dense     sparse     graph / hybrid / remote
+        |         |         |
+        +---- audit/risk ---+
+                  |
+       rollout / fallback / repair
+                  |
+          release evidence
 ```
 
-Representation systems become implementations of a stable semantic interface rather than the definition of the data itself.
+The current project is a research hypothesis about **semantic change control**, not a claim that Semantic ABI is already an industry standard or patent-novel abstraction.
 
-This is a research hypothesis, not a claim that an embedding-independent semantic ABI has already been established as a standard.
+For the exact current evidence, use [`CURRENT_STATUS.md`](CURRENT_STATUS.md).
 
-## Contract clauses in the reference implementation
+## 1. Contract surface
 
-The V0.3 contract operates on stable logical IDs, never on required vector coordinates.
+`SemanticContract` operates on stable logical IDs, not required vector coordinates.
 
-### Ordinal triplet
+Current clause families:
 
-`A must prefer B over C`.
+- **ordinal triplet** — `A must prefer B over C`;
+- **critical neighborhood** — a configured fraction of important neighbors must remain retrievable;
+- **mutual-neighbor relation** — a reciprocal semantic/topological relation must survive.
 
-For a candidate implementation this becomes:
+Clauses can be hard or soft, weighted and provenance-tagged. Contracts have canonical SHA-256 identities, can be linted for contradictions/impossible constraints and can be recorded in a tamper-evident hash-chained `ContractLedger`.
 
-`sim(A, B) - sim(A, C) >= margin`
+Ordinal constraints are not new mathematics; Semantic ABI uses them as one portable contract primitive. See [`PRIOR_ART.md`](PRIOR_ART.md).
 
-The assertion remains meaningful after rotations, dimension changes or replacement of the representation engine. Ordinal-embedding theory motivates the broader principle that relative distance information can encode structure without fixing absolute coordinates.
+## 2. Application semantics are not legacy behavior
 
-### Critical neighborhood
+Two contracts may legitimately coexist:
 
-A logical object can require that a configured portion of an important semantic neighborhood remains retrievable.
+- **application-semantic contract** — what the product/domain says must remain true;
+- **legacy-behavior contract** — selected old retrieval behavior we intentionally want to preserve.
 
-This is useful both for application semantics and for explicit legacy-behavior regression contracts.
+A new retriever can therefore change many old nearest neighbors while improving the actual task. Conversely, a geometrically aligned replacement can still violate a hard domain assertion.
 
-### Mutual-neighbor relation
+The Digits pixels↔HOG experiment demonstrates this separation:
 
-A reciprocal semantic edge can be frozen as a stronger local-topology invariant.
+| representation | application contract | captured legacy behavior |
+|---|---:|---:|
+| pixels | ~0.980 | 1.000 |
+| HOG | ~0.911 | ~0.711 |
+| corrupted HOG | ~0.813 | ~0.610 |
 
-Future clause families should be evidence-driven and may include typed relations, contradictions, monotonic attributes, group separation, temporal ordering, provenance/trust requirements and multimodal constraints.
+Exact old-ranking imitation is therefore not a valid proxy for application meaning by itself.
 
-## Application semantics and legacy behavior are different contracts
+## 3. `SemanticOracle`: the ABI does not require vectors
 
-Semantic ABI deliberately does not collapse these questions.
+`SemanticOracle` is the executable representation boundary. A retriever exposes:
 
-**Application semantic compatibility** asks whether business/domain meaning still holds. Sources may include labels, relevance judgments, domain rules, ontologies, human review, safety cases or observed outcomes.
-
-**Legacy behavior compatibility** asks whether selected behavior of the previous implementation survives: neighborhoods, reciprocal edges or ordinal decisions.
-
-A representation may therefore legitimately score:
-
-```text
-application semantic compatibility = 0.95
-legacy behavior compatibility      = 0.72
+```python
+contains(object_id)
+similarity(left, right)
+neighbors(anchor, k)
 ```
 
-That says the implementation changed the old retriever substantially while preserving most declared application semantics. Requiring identical rankings would incorrectly reject this potentially desirable change.
+Current adapters:
 
-## A score is not a certificate
+- `DenseVectorOracle` — cosine over dense vectors;
+- `CallbackSemanticOracle` — arbitrary sparse, graph, hybrid or remote behavior.
 
-The first prototype used a manually chosen local-risk threshold. That is no longer the intended deployment mechanism.
+`audit_contract()` and `evaluate_contract_clause()` operate against the oracle interface.
 
-The current pipeline separates four concepts:
+### First real inter-paradigm evidence
+
+On SciFact, the exact same 650-clause contract digest
+
+`59d34bc071273dbaa06ce03df1a3b66a2686b6b8c5f240bb49075054909c7b9f`
+
+was evaluated against:
+
+| implementation | ABI score | nDCG@10 | Recall@10 | Hit@10 |
+|---|---:|---:|---:|---:|
+| BGE-small dense | **0.9467** | **0.7821** | **0.8840** | **0.8900** |
+| BM25 sparse | 0.8913 | 0.7335 | 0.8228 | 0.8400 |
+
+BM25 exposed no dense vectors, evaluated **650/650 clauses** with zero missing clauses, and used the exact same contract identity.
+
+This is meaningful evidence for representation-independent execution on one dataset/contract shape. It is **not** proof of universal portability to graph, multimodal or every hybrid retriever.
+
+## 4. Contract score, support and deployment risk are different things
+
+A high global contract score is not a rollout certificate.
+
+The runtime separates:
 
 1. **contract audit** — which declared invariants hold?
-2. **contract support** — is the current query in a region actually covered by audited landmarks?
-3. **risk calibration** — among deployment-like held-out cases, how does proxy risk relate to observed semantic failure?
-4. **statistical certificate** — what is the broadest selective region that meets a stated failure budget at a stated confidence level?
+2. **contract coverage** — how much of the logical surface is actually referenced?
+3. **local support** — is the current query near audited semantic landmarks?
+4. **proxy risk** — does the local risk field rank likely failures?
+5. **statistical certification** — does a selective serving rule meet a declared failure SLA with stated evidence?
 
-These distinctions are essential. A 0.98 contract score over 2% of a corpus is not broad coverage; a low interpolated risk far from all contract landmarks is not trustworthy; and a calibration statement from one distribution must not be silently extrapolated under shift.
+`estimate_local_semantic_risk()` combines interpolated contract risk with an unsupported-region/OOD penalty. This is a practical diagnostic, not a theorem that detects arbitrary distribution shift.
 
-## Contract support and OOD abstention
+## 5. Selective rollout certification
 
-`contract_coverage()` reports how much of the logical corpus is actually referenced by the semantic schema.
+### Conservative family-wise baseline
 
-`estimate_local_semantic_risk()` augments the sparse contract risk field with a support diagnostic. It estimates a reference radius from landmark-to-landmark distances. A query outside this empirical support receives an increasing risk penalty even if its nearest audited landmarks happen to have low violation risk.
+`calibrate_semantic_risk()`:
 
-Conceptually:
+1. splits calibration cases into selection and independent certification partitions;
+2. proposes a family of thresholds using selection data;
+3. evaluates the candidate family on certification data;
+4. uses one-sided Chernoff/KL Bernoulli bounds;
+5. union-corrects the error budget across candidate thresholds;
+6. chooses the broadest certified rule or abstains.
 
-```text
-local risk = max(interpolated contract risk, unsupported-region penalty)
-```
+### Pre-registered exact-binomial baseline
 
-This is a geometric diagnostic, not a theorem that detects every distribution shift. It exists to prevent a particularly dangerous failure mode: projecting confidence into regions the contract never observed.
+`calibrate_semantic_risk_preregistered()` addresses sample efficiency differently:
 
-## Finite-sample selective risk certification
+1. the selection split proposes several thresholds;
+2. it freezes exactly **one** threshold under a stricter internal selection budget;
+3. certification labels are then inspected only for that pre-registered rule;
+4. a one-sided exact binomial upper bound certifies or rejects it;
+5. if it fails, the method **cannot** post-hoc choose another threshold.
 
-`calibrate_semantic_risk()` uses held-out binary semantic outcomes to replace an arbitrary rollout threshold with an evidence-gated one.
+The method saves the multiplicity penalty because it certifies one fixed rule, not because it weakens the final SLA.
 
-The current reference procedure is deliberately conservative:
+Neither approach is claimed as new statistics. Learn-Then-Test, conformal/selective risk control and confidence-sequence methods are stronger prior-art families that must be compared.
 
-1. randomly split calibration events into **selection** and **certification** partitions;
-2. propose a small family of proxy-risk thresholds using only the selection partition;
-3. evaluate the fixed candidate family on the independent certification partition;
-4. compute one-sided Bernoulli Chernoff/KL upper risk bounds;
-5. allocate error probability across candidate thresholds with a union correction;
-6. choose the broadest threshold whose upper bound remains below the requested semantic-risk budget;
-7. **abstain** if none can be certified.
+### SciFact result
 
-The resulting `RiskCertificate` records:
+BGE on SciFact:
 
-- requested risk budget;
-- confidence parameter `delta`;
-- certified proxy-risk threshold;
-- empirical and upper-bounded failure risk;
-- calibration sample counts;
-- estimated selective coverage;
-- method and reason.
+- 175 calibration events;
+- certification split: 87;
+- held-out test queries: 200;
+- support-aware failure-risk AUC on held-out queries: **0.7875**.
 
-This is not advertised as conformal prediction. It is a simple finite-sample high-probability risk-control baseline. Its validity assumes deployment resembles the independent calibration population. Covariate/configuration shift requires reweighting, recalibration or refusal; the implementation explicitly does not claim arbitrary-shift guarantees.
+| target failure SLA | simultaneous KL family | pre-registered exact |
+|---:|---|---|
+| 5% | not certified | not certified |
+| 10% | not certified | not certified |
+| 15% | not certified; upper ~19.19% | **certified; upper ~13.16%** |
+| 20% | certified | certified |
 
-## Fine-grained / slice certification
+At the 15% pre-registered certificate:
 
-Average safety can hide a broken minority region. `calibrate_semantic_risk_by_slice()` therefore constructs a `SliceRiskPortfolio` containing:
+- certification empirical risk: ~**8.05%**;
+- exact upper bound: ~**13.16%**;
+- held-out coverage: **197/200 = 98.5%**;
+- realized held-out risk in the accepted region: ~**10.15%**.
 
-- one global certificate;
-- one certificate for each declared group/slice;
-- a union allocation of the overall confidence budget;
-- explicit uncertified status for sparse groups.
+The important result is not only the pass at 15%. **Both methods still refuse 10%**, so the sample-efficient method does not manufacture a strict certificate that the data cannot support.
 
-Slices can represent language, tenant, jurisdiction, domain, product family, modality or another application-defined partition.
+## 6. Global + slice-aware certification
 
-A query assigned to a slice is eligible only if both the global rule and that slice rule accept its risk. A rare slice with too little calibration data is not silently merged into the majority; it remains uncertified.
+`calibrate_semantic_risk_by_slice()` constructs a portfolio containing one global certificate plus group-specific certificates for declared slices such as language, tenant, jurisdiction or domain.
 
-This is intentionally a first baseline. Future work should compare it against richer conditional/adaptive risk-control methods rather than assuming hand-written slices are optimal.
+A query assigned to a slice should be eligible only when the relevant global and slice rules permit it. Sparse groups remain explicitly uncertified.
 
-## Certified region-wise rollout
+This is a baseline; future work must compare conditional/adaptive risk-control methods and shift-aware calibration rather than assuming hand-authored slices are optimal.
 
-`CertifiedSemanticABIGate` combines:
+## 7. Progressive Semantic Audit: reduce contract cost without deleting the contract
 
-- global hard-clause status;
-- global contract score;
-- support-aware local risk;
-- the finite-sample rollout certificate.
+A separate scaling problem is **how much of a very large contract must be evaluated for a release audit**.
 
-A candidate implementation can therefore be used only where the evidence supports it, with fallback elsewhere:
+Experiments with fixed deterministic clause subsets failed to generalize reliably. The current promoted direction is therefore randomized sequential auditing rather than pretending omitted clauses are semantically redundant.
 
-```text
-query
-  |
-  +-- supported + risk-certified region ---> candidate model
-  |
-  +-- uncertified / shifted region --------> legacy model or review
-  |
-  +-- hard semantic failure ---------------> block
-```
+`progressive_semantic_audit()` defines a specific SLA:
 
-This changes model rollout from one global switch into a potentially **selective semantic rollout**.
+> all hard clauses pass, and weighted soft-clause violation rate is at most `r`.
 
-## Active semantic repair
+Policy:
 
-Certification should not end with a red/green result. A failed audit produces a sparse map of broken contract clauses and implicated logical objects.
+1. evaluate **every hard clause**;
+2. sample soft clauses with replacement proportional to their weights;
+3. cache oracle evaluations so repeated draws are statistically valid but computationally cheap;
+4. inspect results only at predeclared batch looks;
+5. split `delta` across both tails and all possible looks;
+6. compute exact one-sided binomial bounds;
+7. return early PASS if the upper bound is ≤ the SLA;
+8. return early FAIL if the lower bound exceeds the SLA;
+9. if still ambiguous, evaluate the remaining contract exactly.
 
-Two repair planners exist as transparent baselines.
+This is a separate policy from the historical aggregate ABI score.
 
-### Risk/diversity planner
+### Real Digits result
 
-`plan_repairs()` prioritizes high-risk and high-centrality objects while avoiding spending the whole budget in one dense failure region.
+With a 1,500-clause contract, baseline + four controlled corruptions and three SLAs (2/5/10%):
 
-### Cost-aware violation-coverage planner
+- **15/15** progressive decisions matched exhaustive decisions;
+- **12/15** stopped without full audit;
+- mean unique clauses evaluated among early decisions: **7.17%**.
 
-`plan_repairs_by_coverage()` models each violated clause as violation mass:
+Examples:
 
-`clause weight * (1 - clause score)`
+- identity permutation, SLA 5%: FAIL after **49/1,500 = 3.27%**;
+- coordinate noise, SLA 5%: FAIL after **49/1,500**;
+- hub-pull, SLA 5%: FAIL after **140/1,500 = 9.33%**;
+- healthy baseline, SLA 10%: PASS after **186/1,500 = 12.4%**.
 
-with an optional multiplier for hard clauses.
+Three near-boundary cases fell back to the full 1,500 clauses. The healthy baseline itself has ~4.73% exact soft-clause violations, so its 5% SLA is intentionally near the boundary and did not receive a cheap shortcut.
 
-Given a cost per logical object (human review, relabeling, re-embedding, API call, GPU work), it greedily selects the next object that covers the most previously uncovered known violation mass per unit cost, with an optional object-risk bonus.
+Sequential audit/early stopping is established statistics. The research question here is whether this can make **large Semantic ABI release audits economically useful** across real heterogeneous retrievers.
 
-This does **not** claim that touching one object automatically repairs every incident clause. It is a diagnostic-budget planner: maximize how much known breakage the limited investigation budget exposes.
+## 8. Why deterministic contract compression was demoted
 
-The next scientific baselines are random selection, pure highest-risk selection, uncertainty sampling, submodular/cost-aware selection and learned active policies.
+### Semantic Witness Set
 
-## Closed-loop semantic change management
+A 1,500-clause contract was compressed and tested on changed object IDs, 3–10% fault footprints, different severities and an unseen coherent-drift family.
 
-`SemanticChangeManager` implements the control loop while deliberately keeping mutation outside the library:
+Representative held-out results:
+
+- 10 clauses: TPR **62.5%**, FPR **0%**;
+- 25 clauses: TPR **100%**, FPR **28.6%**;
+- 100 clauses: TPR **100%**, FPR **42.9%**.
+
+Random same-size subsets remain competitive on the overall trade-off. The module remains a research baseline only.
+
+### Discriminative Diagnostic Panel
+
+A learned panel achieved TPR 1/FPR 0 on its training scenarios, then **0% held-out regression TPR** across budgets 5–100 clauses.
+
+This exposed object-local overfitting: a clause that is highly discriminative for one localized fault may simply point to where that training fault occurred.
+
+The failed panel is not exported by the top-level API.
+
+## 9. Active acquisition and contract adequacy
+
+### Semantic Diff
+
+`semantic_diff()` compares representations and `propose_contract_questions()` turns informative disagreements into ordinal domain questions.
+
+Digits mechanism evidence:
+
+- all disagreement questions label-resolvable: ~**11.7%**;
+- top 25 proposed: **68%**;
+- top 50: **60%**.
+
+This supports active acquisition as a promising way to reduce human contract-authoring cost, while active preference/query selection itself has substantial prior art.
+
+### Mutation adequacy
+
+Semantic mutation testing deliberately injects identity permutation, local collapse, hub-pull and coordinate noise. The current Digits contract kills the tested mutation families, but fault localization remains much weaker than global detection.
+
+Mutation testing is an adequacy instrument, not a novelty claim.
+
+## 10. Active repair
+
+A failed audit should produce more than red/green output.
+
+Current transparent baselines:
+
+- `plan_repairs()` — risk × violation centrality × diversity;
+- `plan_repairs_by_coverage()` — known violation mass covered per unit object cost.
+
+In a Digits/HOG experiment with 10% deliberate identity corruption, the first 25 repair candidates were truly corrupt **68%** of the time versus 10% random expectation.
+
+The intended future metric is **certified semantic coverage gained per dollar/token/GPU-second**, not only corrupted-object precision.
+
+## 11. Closed-loop semantic change management
 
 ```text
 Contract
    |
    v
- Audit ---> Support ---> Risk calibration
-   |                         |
-   |                         v
-   |                   Certified gate
-   |                         |
- violations                  +---- candidate region
-   |                         |
-   v                         +---- fallback / abstain
-Repair plan
+Audit / Progressive Audit
    |
-external review / re-embed / correct
+   +--> support + rollout-risk calibration --> selective candidate / fallback
    |
-   v
-Re-audit + Re-certify
+   +--> violations --> repair plan --> external correction/re-embed
+                                  |
+                                  +--> re-audit / re-certify
 ```
 
-The manager produces immutable-ish assessment data; it never silently rewrites embeddings or semantic truth. `compare_assessments()` reports whether a repair actually improved contract score, violation count and peak object risk.
+`SemanticChangeManager` never silently mutates semantic truth. External systems perform review/relabeling/re-embedding; the manager produces auditable assessments and comparison deltas.
 
-## Semantic Release Certificate
+## 12. Semantic Release Certificate
 
-A deployment decision is only useful if it can be reproduced later.
+`SemanticReleaseCertificate` binds:
 
-`SemanticReleaseCertificate` binds in one canonical, SHA-256-addressed manifest:
-
-- exact implementation identity;
-- provider/model revision;
-- vector dimension and modality;
+- implementation/provider/model revision;
+- representation dimension and modality;
 - preprocessing digest;
 - Semantic Contract digest;
-- contract audit score and hard-pass state;
-- logical-object coverage;
-- finite-sample risk certificate;
-- hashes of benchmark/evidence artifacts;
+- audit score/hard-pass state and logical coverage;
+- finite-sample rollout certificate;
+- benchmark/evidence hashes;
 - release status and metadata.
 
-`ImplementationFingerprint` intentionally requires more than a human model alias. Tokenization, query prefixes, chunking, pooling and normalization can change coordinates and therefore belong in the implementation identity.
+Hashes make artifacts tamper-evident; they do not authenticate an issuer. Signatures, transparency logs, expiry/revocation and reviewer identity remain future governance work.
 
-The JSON certificate is tamper-evident through a canonical digest, and referenced evidence can be verified against SHA-256 hashes. Cryptographic signatures/transparency logs are a future governance layer; the current implementation does not pretend a hash alone authenticates an issuer.
+The repository is additionally moving to `docs/evidence-manifest.json`, which binds published research claims to the Git blobs of evidence-sensitive code and GitHub Actions artifact digests. CI will fail when those source blobs change without regenerating the evidence.
 
-## Hash-chained semantic schema history
+## 13. Relationship to SCF
 
-Contracts themselves have canonical SHA-256 identities. `ContractLedger` records their evolution in a small append-only hash chain.
+The layers solve different questions:
 
-This is not a blockchain claim. It makes the evolution of the semantic schema explicit:
+- **SCF:** can observations/queries be transported between coordinate systems during migration?
+- **Semantic ABI:** does an implementation satisfy application invariants?
+- **rollout certification:** where may a candidate serve traffic under a measured failure SLA?
+- **Progressive Audit:** how cheaply can a large contract be audited under a declared clause-violation SLA?
 
-```text
-contract v1 -> contract v2 -> contract v3
-     |              |              |
- release A      release B       release C
-```
+A good coordinate map can fail the ABI. A candidate can satisfy the ABI without resembling old coordinates.
 
-Production governance should ultimately bind reviewers, provenance, evidence, signatures, expiry/revocation and deployment decisions.
+On BGE→MiniLM SciFact, global mapping beats the local atlas, and evidence-gating selects global. Local SCF therefore remains optional rather than architectural dogma.
 
-## Relationship to Semantic Coordinate Fabric
+## 14. Research questions now worth pursuing
 
-The layers are deliberately separable:
-
-- **SCF:** can observations/queries move between representation coordinate systems?
-- **Semantic ABI:** does an implementation preserve the application invariants that matter?
-- **release control:** where, and with what measured risk, may that implementation actually serve traffic?
-
-A mathematically good coordinate translation can still violate the ABI. A candidate can satisfy the ABI without faithfully imitating old coordinates. This is why the ABI sits above migration adapters rather than being another adapter.
-
-## Existing evidence
-
-### Real classical representation stress test
-
-On 1,400 handwritten digits represented either as 64-D pixels or 324-D HOG:
-
-- task-oriented contract: pixels ~**0.980**, HOG ~**0.911**;
-- HOG after deliberate 10% identity corruption: ~**0.813**;
-- captured legacy behavior: pixels **1.000**, HOG ~**0.711**, corrupted HOG ~**0.610**.
-
-This established an important mechanism result: application compatibility and old-ranking compatibility can differ sharply.
-
-The earlier fixed threshold coverage values are retained as historical mechanism evidence, but the production direction is now the statistically calibrated support-aware gate described above.
-
-### Real neural encoder gate
-
-`benchmarks/real_encoder_scifact_benchmark.py` is the next critical falsification test. It evaluates MiniLM and BGE on public SciFact relevance judgments, measures direct retrieval and cross-model transport separately, calibrates a support-aware selective risk rule, evaluates it on held-out test queries, emits an NPZ for adapter comparisons, and produces a Semantic Release Certificate tied to exact model revisions.
-
-The benchmark is intentionally isolated in `.github/workflows/real-encoder.yml` so model downloads do not run on every code commit.
-
-## Research questions
-
-1. Which clause families best predict real downstream regressions rather than merely old-neighbor drift?
-2. How many assertions are required to cover million/billion-object corpora economically?
-3. Can contracts be learned/curated actively without encoding current-model quirks as permanent truth?
-4. How should calibration adapt under domain, language, temporal and configuration shift?
-5. Can semantic slices be discovered rather than manually declared?
-6. What repair objective maximizes **certified coverage gained per unit cost**?
-7. Can the same contract certify dense, sparse, graph and multimodal implementations?
-8. Which high-order topological/ordinal invariants compress many individual clauses safely?
-9. Can release certificates become interoperable across independent databases and model providers?
+1. Does the same contract remain useful across dense, sparse, graph, hybrid and multimodal retrievers?
+2. Can Progressive Audit retain large savings at 10k/100k/million-clause scale and heterogeneous clause costs?
+3. Can confidence sequences / finite-population sequential methods improve sample efficiency over simple alpha spending?
+4. How should query rollout certification behave under domain, language, temporal and configuration shift?
+5. Which active-acquisition strategy minimizes human judgments needed per downstream regression caught?
+6. What repair policy maximizes certified coverage gained per unit cost?
+7. Can contract clauses become richer typed/temporal/provenance assertions without becoming an unmaintainable ontology?
+8. Can release certificates become independently verifiable across model providers and databases?
 
 ## Kill / narrow criteria
 
-Semantic ABI should collapse toward ordinary regression testing if one or more of these persist on representative real systems:
+Semantic ABI should collapse toward ordinary regression testing if representative systems show that:
 
-- local/support-aware risk does not predict failures beyond ordinary validation metrics;
-- statistically safe selective regions have negligible useful coverage;
+- the ABI predicts no useful failures beyond conventional benchmark suites;
+- dense↔sparse portability does not generalize to other representation paradigms;
 - useful contracts require near-exhaustive annotation;
-- slice certification is too data-hungry to be operationally meaningful;
-- repair planning does not beat simple/random backfill on certified-coverage-per-cost;
-- maintaining the semantic contract costs as much as simply re-evaluating/re-embedding everything;
-- abstraction across representation families proves illusory.
+- selective rollout certificates have negligible useful coverage;
+- Progressive Audit usually falls back to exhaustive evaluation;
+- repair does not beat simple backfill economically;
+- governance overhead costs as much as simply re-evaluating/re-embedding everything.
 
-A negative result is acceptable. The objective is not to preserve the name **Semantic ABI**. The objective is to discover whether a portable, auditable semantic interface can make representation changes materially safer and cheaper.
+The objective is not to preserve the phrase **Semantic ABI**. The objective is to discover whether a portable, auditable semantic interface can make representation changes materially safer and cheaper.
