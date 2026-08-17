@@ -1,0 +1,39 @@
+name: real-data-mechanisms
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - agent/semantic-manifold-atlas
+    paths:
+      - benchmarks/digits_coordinate_benchmark.py
+      - benchmarks/semantic_abi_digits_benchmark.py
+      - benchmarks/semantic_diff_digits_benchmark.py
+      - .github/workflows/real-data-mechanisms.yml
+
+jobs:
+  digits:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install --upgrade pip
+      - run: pip install -e '.[bench]'
+      - name: Coordinate transition benchmark
+        run: python benchmarks/digits_coordinate_benchmark.py | tee digits-coordinate.json
+      - name: Semantic ABI corruption/repair benchmark
+        run: python benchmarks/semantic_abi_digits_benchmark.py | tee digits-abi.json
+      - name: Semantic Diff active contract discovery benchmark
+        run: python benchmarks/semantic_diff_digits_benchmark.py | tee digits-semantic-diff.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: real-data-mechanism-evidence
+          path: |
+            digits-coordinate.json
+            digits-abi.json
+            digits-semantic-diff.json
+          if-no-files-found: error
