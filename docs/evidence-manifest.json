@@ -155,6 +155,31 @@
         "src/semantic_atlas/contracts.py": "10613bf566dd3a27a61c78361f98ef41f37b958a",
         "src/semantic_atlas/oracle.py": "0608d587f2a94d45d8541088cd2dfd6e4dc58553"
       }
+    },
+    "late-interaction-protocol-v1": {
+      "status": "promoted",
+      "workflow": "late-interaction-semantic-abi",
+      "workflow_run_id": 32039368503,
+      "workflow_head_sha": "9a6cc1d824650b0c1782412a4569254f57055631",
+      "artifact_name": "semantic-abi-late-interaction-scifact-v1",
+      "artifact_sha256": "sha256:032067da95c6eab107d0300c98b93c5e8331a1da5e1ecbeae64483a963add68f",
+      "claims": [
+        "the same 600-clause SciFact application contract digest executes unchanged against lexical BM25 and real ColBERTv2 late interaction",
+        "ColBERTv2 evaluates 600/600 clauses with zero missing clauses and passes all hard clauses",
+        "the asymmetric MaxSim oracle passes 660 Protocol-v1 conformance checks with zero issues",
+        "the compiled ColBERT audit deduplicates 805 logical-object checks, 600 directional score pairs and 300 top-k requests into three backend batch operation families",
+        "held-out SciFact ColBERTv2 retrieval reaches nDCG@10 0.7337 and Recall@10 0.8395 versus BM25 nDCG@10 0.7167 and Recall@10 0.8086 under this benchmark",
+        "this is evidence of protocol/contract portability to a real asymmetric multi-vector retriever, not a claim of general ColBERT quality superiority or novelty of MaxSim, ANN, OpenAPI or batch RPC"
+      ],
+      "source_blobs": {
+        ".github/workflows/late-interaction-semantic-abi.yml": "294074bc425e8c900858971d1e606797652140ee",
+        "benchmarks/semantic_abi_late_interaction_scifact.py": "166cf2e4c77255f67f104882886dd691639a327b",
+        "benchmarks/semantic_abi_multidataset_benchmark.py": "77f05066738c16c5929ea6fe0f30fcd7eeb1aafe",
+        "src/semantic_atlas/contracts.py": "10613bf566dd3a27a61c78361f98ef41f37b958a",
+        "src/semantic_atlas/protocol_v1.py": "3eefecb3ec305fa8df9dc903e23d29c2185e9d27",
+        "src/semantic_atlas/late_interaction.py": "56c5a0245ecc597149a7b7a3b1f6391342f54da2",
+        "src/semantic_atlas/conformance.py": "e487f0c8c29bec7401a17e41a6aa482cd88c5875"
+      }
     }
   }
 }
