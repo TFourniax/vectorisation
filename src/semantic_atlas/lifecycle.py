@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
-from typing import Mapping, Sequence, Any
+from typing import Any, Mapping, Sequence
 
 import numpy as np
 
 from .contracts import ContractReport, SemanticContract
+from .oracle import DenseVectorOracle, SemanticOracle, audit_contract
 from .repair import CoverageRepairPlan, plan_repairs_by_coverage
 from .risk_control import CalibrationEvent, RiskCertificate, calibrate_semantic_risk
 
@@ -68,11 +69,13 @@ def compare_assessments(before: ChangeAssessment, after: ChangeAssessment) -> As
 class SemanticChangeManager:
     """Reference closed loop: Contract -> Audit -> Certify -> Repair -> Re-certify.
 
-    The manager deliberately does not mutate vectors or call embedding models.
-    Repair actions are external operations (review, re-embedding, relabeling,
-    data correction). After those operations, call ``assess`` again and compare
-    the assessments. Keeping mutation outside the manager makes every semantic
-    state transition explicit and auditable.
+    The lifecycle is representation-agnostic. Dense vectors are supported
+    through ``DenseVectorOracle`` for backwards compatibility, while graph,
+    sparse, hybrid or remote systems can pass any ``SemanticOracle`` directly.
+
+    Repair actions remain external operations (review, re-embedding, relabeling,
+    graph correction, reranking changes). After those operations, assess again
+    and compare the immutable assessment evidence.
     """
 
     def __init__(
@@ -88,20 +91,19 @@ class SemanticChangeManager:
         self.target_risk = float(target_risk)
         self.delta = float(delta)
 
-    def assess(
+    def _finish_assessment(
         self,
         implementation: str,
-        candidate_vectors: Mapping[str, np.ndarray],
+        report: ContractReport,
         calibration_events: Sequence[CalibrationEvent],
         *,
-        repair_budget: float = 0.0,
-        repair_costs: Mapping[str, float] | None = None,
-        threshold_candidates: int = 12,
-        min_selection: int = 20,
-        min_certification: int = 30,
-        seed: int = 17,
+        repair_budget: float,
+        repair_costs: Mapping[str, float] | None,
+        threshold_candidates: int,
+        min_selection: int,
+        min_certification: int,
+        seed: int,
     ) -> ChangeAssessment:
-        report = self.contract.audit(candidate_vectors, implementation=implementation)
         certificate = calibrate_semantic_risk(
             calibration_events,
             target_risk=self.target_risk,
@@ -113,11 +115,7 @@ class SemanticChangeManager:
         )
         repair_plan = None
         if repair_budget > 0.0 and report.violated:
-            repair_plan = plan_repairs_by_coverage(
-                report,
-                budget=repair_budget,
-                costs=repair_costs,
-            )
+            repair_plan = plan_repairs_by_coverage(report, budget=repair_budget, costs=repair_costs)
 
         if not report.hard_pass:
             status = "blocked"
@@ -143,4 +141,57 @@ class SemanticChangeManager:
             repair_plan=repair_plan,
             status=status,
             reason=reason,
+        )
+
+    def assess_oracle(
+        self,
+        oracle: SemanticOracle,
+        calibration_events: Sequence[CalibrationEvent],
+        *,
+        implementation: str | None = None,
+        repair_budget: float = 0.0,
+        repair_costs: Mapping[str, float] | None = None,
+        threshold_candidates: int = 12,
+        min_selection: int = 20,
+        min_certification: int = 30,
+        seed: int = 17,
+    ) -> ChangeAssessment:
+        label = implementation or getattr(oracle, "implementation", "semantic-oracle")
+        report = audit_contract(self.contract, oracle, implementation=label)
+        return self._finish_assessment(
+            label,
+            report,
+            calibration_events,
+            repair_budget=repair_budget,
+            repair_costs=repair_costs,
+            threshold_candidates=threshold_candidates,
+            min_selection=min_selection,
+            min_certification=min_certification,
+            seed=seed,
+        )
+
+    def assess(
+        self,
+        implementation: str,
+        candidate_vectors: Mapping[str, np.ndarray],
+        calibration_events: Sequence[CalibrationEvent],
+        *,
+        repair_budget: float = 0.0,
+        repair_costs: Mapping[str, float] | None = None,
+        threshold_candidates: int = 12,
+        min_selection: int = 20,
+        min_certification: int = 30,
+        seed: int = 17,
+    ) -> ChangeAssessment:
+        oracle = DenseVectorOracle(candidate_vectors, implementation=implementation)
+        return self.assess_oracle(
+            oracle,
+            calibration_events,
+            implementation=implementation,
+            repair_budget=repair_budget,
+            repair_costs=repair_costs,
+            threshold_candidates=threshold_candidates,
+            min_selection=min_selection,
+            min_certification=min_certification,
+            seed=seed,
         )
