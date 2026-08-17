@@ -1,14 +1,15 @@
 """Held-out contract sparsification benchmark on real handwritten digits.
 
-Witness selection is contrastive: it sees strong regression examples and weak
-negative controls that the full contract considers acceptable. It never sees
-affected-object IDs. Evaluation varies affected IDs, footprint and severity,
-and adds coherent directional drift, a fault family absent from training.
-Random clause subsets of identical size are the baseline.
+Witness selection is contrastive: it sees strong regression examples plus
+micro-drift candidates that are retained as negative controls only when the
+*full* contract classifies them as non-regressions. It never sees affected-object
+IDs. Evaluation varies affected IDs, footprint and severity, and adds coherent
+directional drift, a fault family absent from training. Random clause subsets
+of identical size are the baseline.
 
 This asks whether a compact Semantic Witness Set can retain the full contract's
-observed regression decisions without becoming hypersensitive to benign drift.
-It does not prove omitted clauses are universally redundant.
+observed regression decisions without becoming hypersensitive to acceptable
+drift. It does not prove omitted clauses are universally redundant.
 """
 from __future__ import annotations
 
@@ -29,14 +30,14 @@ from semantic_atlas.mutation import (
 )
 from semantic_atlas.witness import WitnessScenario, build_semantic_witness_set, evaluate_clause_subset
 
+DETECTION_DROP = 0.03
+
 
 def coherent_drift(mapping, object_ids, *, strength: float, seed: int, name: str) -> SemanticMutation:
-    """Move a local set in one shared random direction: an unseen fault family."""
     ids = [object_id for object_id in object_ids if object_id in mapping]
     rng = np.random.default_rng(seed)
     dimension = len(next(iter(mapping.values())))
-    direction = rng.normal(size=dimension).astype(np.float32)
-    direction = normalize(direction.reshape(1, -1))[0]
+    direction = normalize(rng.normal(size=(1, dimension)).astype(np.float32))[0]
     mutated = {object_id: np.asarray(vector, dtype=np.float32).copy() for object_id, vector in mapping.items()}
     alpha = float(np.clip(strength, 0.0, 1.0))
     for object_id in ids:
@@ -67,22 +68,47 @@ def fault_panel(mapping, *, seed: int, fraction: float, weak: bool) -> list[Sema
     ]
 
 
-def benign_panel(mapping, *, seed: int, fraction: float = 0.10) -> list[SemanticMutation]:
-    """Low-severity negative controls; full-contract decisions define benignity."""
+def micro_drift_candidates(mapping, *, seed: int, fraction: float = 0.10) -> list[SemanticMutation]:
     chosen = choose_ids(mapping, seed=seed, fraction=fraction)
     suffix = f"{seed}-f{fraction:.3f}"
-    return [
-        collapse_region(mapping, chosen, strength=0.08, name=f"benign-collapse-{suffix}"),
-        pull_to_hub(mapping, chosen, strength=0.06, name=f"benign-hub-{suffix}"),
-        add_vector_noise(mapping, chosen, sigma=0.025, seed=seed + 1, name=f"benign-noise-{suffix}"),
-    ]
+    out: list[SemanticMutation] = []
+    for strength in (0.01, 0.02, 0.04, 0.08):
+        out.append(collapse_region(mapping, chosen, strength=strength, name=f"micro-collapse-{strength:.3f}-{suffix}"))
+    for strength in (0.01, 0.02, 0.04, 0.08):
+        out.append(pull_to_hub(mapping, chosen, strength=strength, name=f"micro-hub-{strength:.3f}-{suffix}"))
+    for offset, sigma in enumerate((0.003, 0.006, 0.012, 0.024)):
+        out.append(add_vector_noise(mapping, chosen, sigma=sigma, seed=seed + 10 + offset, name=f"micro-noise-{sigma:.3f}-{suffix}"))
+    return out
+
+
+def scenario(contract, mutation, prefix: str) -> WitnessScenario:
+    return WitnessScenario(mutation.name, contract.audit(mutation.vectors, implementation=f"{prefix}:{mutation.name}"))
 
 
 def scenarios_from_mutations(contract, mutations, prefix: str) -> list[WitnessScenario]:
-    return [
-        WitnessScenario(mutation.name, contract.audit(mutation.vectors, implementation=f"{prefix}:{mutation.name}"))
-        for mutation in mutations
-    ]
+    return [scenario(contract, mutation, prefix) for mutation in mutations]
+
+
+def full_contract_detects(contract, baseline, candidate: WitnessScenario) -> bool:
+    evaluation = evaluate_clause_subset(
+        contract,
+        baseline,
+        [candidate],
+        range(len(contract.clauses)),
+        detection_drop=DETECTION_DROP,
+    )
+    return evaluation.scenarios[0].full_detected
+
+
+def negative_controls(contract, baseline, mapping, *, seed: int) -> list[WitnessScenario]:
+    controls = []
+    for mutation in micro_drift_candidates(mapping, seed=seed):
+        candidate = scenario(contract, mutation, "train-negative")
+        if not full_contract_detects(contract, baseline, candidate):
+            controls.append(candidate)
+    if len(controls) < 3:
+        raise RuntimeError(f"expected at least three full-contract negative controls, found {len(controls)}")
+    return controls
 
 
 def random_baseline(contract, baseline, scenarios, *, size: int, repeats: int = 20, seed: int = 991) -> dict:
@@ -94,7 +120,7 @@ def random_baseline(contract, baseline, scenarios, *, size: int, repeats: int = 
     for _ in range(repeats):
         sampled = available.tolist() if remaining >= len(available) else rng.choice(available, size=remaining, replace=False).tolist()
         indices = sorted(set(hard + [int(index) for index in sampled]))
-        rows.append(evaluate_clause_subset(contract, baseline, scenarios, indices, detection_drop=0.03))
+        rows.append(evaluate_clause_subset(contract, baseline, scenarios, indices, detection_drop=DETECTION_DROP))
     return {
         "positive_recall_mean": float(np.mean([row.positive_recall for row in rows])),
         "positive_recall_max": float(np.max([row.positive_recall for row in rows])),
@@ -126,22 +152,14 @@ def main() -> None:
     )
     baseline = contract.audit(mapping, implementation="pixels64:baseline")
 
-    # Strong faults teach sensitivity; low-severity negative controls teach
-    # specificity. The full contract itself defines which controls are detected.
     training_faults = scenarios_from_mutations(
         contract,
         default_semantic_mutations(mapping, fraction=0.10, seed=23),
         "train-fault",
     )
-    training_benign = scenarios_from_mutations(
-        contract,
-        benign_panel(mapping, seed=47),
-        "train-benign",
-    )
-    training = training_faults + training_benign
+    training_negatives = negative_controls(contract, baseline, mapping, seed=47)
+    training = training_faults + training_negatives
 
-    # Held-out evaluation changes IDs, footprint and severity, and adds coherent
-    # directional drift which selection never observed.
     heldout_mutations = (
         fault_panel(mapping, seed=101, fraction=0.03, weak=True)
         + fault_panel(mapping, seed=211, fraction=0.05, weak=False)
@@ -153,7 +171,7 @@ def main() -> None:
         baseline,
         heldout,
         range(len(contract.clauses)),
-        detection_drop=0.03,
+        detection_drop=DETECTION_DROP,
     )
 
     rows = []
@@ -163,7 +181,7 @@ def main() -> None:
             baseline,
             training,
             max_clauses=budget,
-            detection_drop=0.03,
+            detection_drop=DETECTION_DROP,
             target_detection_coverage=1.0,
             target_loss_coverage=0.95,
             object_coverage_weight=0.08,
@@ -174,7 +192,7 @@ def main() -> None:
             baseline,
             heldout,
             witness.selected_clause_indices,
-            detection_drop=0.03,
+            detection_drop=DETECTION_DROP,
         )
         rows.append(
             {
@@ -195,12 +213,7 @@ def main() -> None:
                     "retained_loss": heldout_eval.mean_retained_loss_mass,
                     "object_coverage": heldout_eval.object_coverage,
                 },
-                "random_same_size": random_baseline(
-                    contract,
-                    baseline,
-                    heldout,
-                    size=len(witness.selected_clause_indices),
-                ),
+                "random_same_size": random_baseline(contract, baseline, heldout, size=len(witness.selected_clause_indices)),
             }
         )
 
@@ -211,11 +224,12 @@ def main() -> None:
                 "objects": len(mapping),
                 "source_contract_clauses": len(contract.clauses),
                 "training_fault_instances": len(training_faults),
-                "training_negative_controls": len(training_benign),
+                "training_negative_controls": len(training_negatives),
+                "negative_controls_definition": "micro-drifts retained only if full contract does not detect them",
                 "heldout_fault_instances": len(heldout),
                 "heldout_fault_fractions": [0.03, 0.05, 0.10],
                 "heldout_unseen_fault_family": "coherent-directional-drift",
-                "detection_score_drop": 0.03,
+                "detection_score_drop": DETECTION_DROP,
                 "full_contract_heldout": {
                     "positive_recall": full_heldout.positive_recall,
                     "false_positive_rate": full_heldout.false_positive_rate,
@@ -223,7 +237,7 @@ def main() -> None:
                 },
                 "witness_curve": rows,
                 "warning": (
-                    "Witness selection is contrastively trained on broad faults plus low-severity negative controls. Held-out evaluation "
+                    "Witness selection learns full-contract decisions from broad faults and explicit negative controls. Held-out evaluation "
                     "changes IDs, footprint and severity and adds one unseen fault family, but this remains a small real-data mechanism "
                     "benchmark rather than a guarantee of production semantic completeness."
                 ),
