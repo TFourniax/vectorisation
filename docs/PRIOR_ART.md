@@ -1,130 +1,154 @@
 # Prior art and differentiation notes
 
-This is a research map, not a novelty or patent opinion. The literature is moving extremely quickly. The correct posture is to narrow claims whenever stronger prior art appears.
+This is a living research map, **not** a novelty or patent opinion. The literature is moving quickly; claims must narrow whenever stronger prior art appears.
 
-## The important correction after the first prototype
+## Current position
 
-The original V0.2 thesis—embedding models as interoperable coordinate systems—overlaps materially with a fast-moving research program from the University of Edinburgh and with earlier compatibility work. **SMA/SCF must not claim that cross-model translation, local alignment, composable translation, or embedding-independent vector-database representations are broadly new.**
+The original V0.2 thesis—embedding models as interoperable coordinate systems—overlaps materially with active academic work and older representation-compatibility literature. **SMA/SCF must not claim that cross-model translation, local alignment, composable translation, confidence-aware routing or embedding-independent vector-database representations are broadly new.**
 
-That discovery changed the project direction. The strongest current research hypothesis is now the **Semantic ABI** layer: a coordinate-free, versioned contract of semantic invariants used to certify, localize and route representation implementations.
+The strongest current systems hypothesis is instead the **Semantic ABI / semantic change-management layer**:
 
-## Integrating Vector Databases across Embedding Models — SIGMOD 2026
+> versioned, coordinate-free application invariants evaluated through a representation-agnostic behavior interface, combined with support-aware risk, evidence-gated rollout/fallback, active contract acquisition/repair and reproducible release evidence.
+
+Even that complete formulation remains a hypothesis. Individual ingredients have substantial prior art, documented below.
+
+## Cross-model embedding interoperability
+
+### Integrating Vector Databases across Embedding Models — SIGMOD 2026
 
 Beining Yang, Yang Cao and Yang Ren, *Integrating Vector Databases across Embedding Models*, ACM SIGMOD 2026 (Best Paper Honorable Mention).
 
-This work directly studies integrating vector databases produced by different embedding models without assuming access to raw objects or model internals. It is rooted in local cross-model geometric consistency and evaluates real embedding models.
+This work directly studies integration of vector databases produced by different embedding models, using local cross-model geometric consistency and real model evaluations. It is direct prior art against broad SCF interoperability claims.
 
-This is direct prior art against any broad claim that SCF invented cross-model vector-database interoperability.
-
-## Generalizable and Composable Multi-Model Embedding Translation — ICML 2026
+### Generalizable and Composable Multi-Model Embedding Translation — ICML 2026
 
 Beining Yang and Yang Cao, *Generalizable and Composable Multi-Model Embedding Translation*, ICML 2026 Spotlight.
 
-This is particularly important prior art for the most recent SCF direction. It studies multi-model translation, out-of-distribution behavior, composed/chained translations, a geometry-aware confidence metric and localized adaptation through a hierarchical mixture-of-experts design.
+This work covers multi-model translation, OOD behavior, composed/chained translations, geometry-aware confidence and localized adaptation through hierarchical mixture-of-experts designs.
 
-Therefore SCF must **not** claim novelty for:
+SCF therefore does **not** claim novelty for:
 
 - local embedding translation by itself;
 - query/model-specific translation confidence by itself;
-- chaining translations across several representation models;
+- chaining translations across representation models;
 - localized experts for cross-model interoperability.
 
-Our local-risk field and query-aware graph routing remain useful executable research mechanisms, but the scientific contribution cannot rest on those ideas alone.
-
-## Vector Linking via Cross-Model Local Isometric Consistency — ICML 2026
+### Vector Linking via Cross-Model Local Isometric Consistency — ICML 2026
 
 Ziying Chen, Yang Cao, He Sun, Beining Yang and Tianjian Yang, *Vector Linking via Cross-Model Local Isometric Consistency*, ICML 2026.
 
-The work provides theoretical/empirical support for local geometric consistency between independently trained contrastive encoders and uses anchor correspondences to link vector spaces.
+This provides theoretical/empirical support for local geometric consistency between independently trained contrastive encoders and anchor-based vector linking. It supports local methods while constraining novelty claims around the atlas metaphor.
 
-This strongly supports local methods while constraining novelty claims around the "atlas" metaphor.
-
-## Metric Algebra: Embedding-Independence in Vector Databases — accepted SIGMOD 2027
+### Metric Algebra: Embedding-Independence in Vector Databases — accepted SIGMOD 2027
 
 Tianjian Yang, Yang Cao, Beining Yang, Ziying Chen and Tiejun Ma, *Metric Algebra: Embedding-Independence in Vector Databases*, accepted for SIGMOD 2027.
 
-The authors describe it as an intermediate representation bringing physical/logical independence—embedding independence—to vector database systems. As of this research pass, the accepted-paper listing and author research page are public, but we did not find a public full preprint through ordinary search.
+The authors position it as an intermediate representation for embedding independence in vector-database systems. Until the full work can be reviewed, broad claims around representation-independent vector-database IRs should be assumed to overlap materially.
 
-This title and positioning are close enough to the broad SCF vision that we should assume significant overlap until the full paper can be reviewed.
-
-## Drift-Adapter — EMNLP 2025
+### Drift-Adapter — EMNLP 2025
 
 Harshil Vejendla, *Drift-Adapter: A Practical Approach to Near Zero-Downtime Embedding Model Upgrades in Vector Databases*, EMNLP 2025.
 
-It maps new queries into a legacy space using paired anchors and evaluates orthogonal Procrustes, low-rank affine and residual-MLP adapters. The reported experiments recover most full-reembedding retrieval quality with very small query-time overhead.
+It maps new queries into a legacy space using paired anchors and evaluates orthogonal Procrustes, low-rank affine and residual-MLP adapters. This is strong prior art for migration-time query transformation and deferred re-embedding.
 
-This is strong prior art for zero/near-zero-downtime upgrades through query transformation.
+### Older compatibility literature
 
-## Backward/forward compatible representation learning
+Backward/forward-compatible representation learning substantially predates this repository: Forward Compatible Training, bidirectional compatibility, learning compatible embeddings, neighborhood-consensus approaches, Darwinian/selective model upgrades and heterogeneous visual-search compatibility all establish representation compatibility as a long-standing problem.
 
-A substantial vision/retrieval literature predates the database-oriented work:
+*Query Drift Compensation* (CoLLAs 2026) further studies continual text-retrieval model updates by projecting new queries into old embedding spaces.
 
-- backward-compatible training;
-- Forward Compatible Training (CVPR 2022);
-- Bidirectional Compatible Training;
-- Learning Compatible Embeddings;
-- Neighborhood Consensus Contrastive Learning;
-- Darwinian Model Upgrades / selective compatibility;
-- compatibility-aware heterogeneous visual search.
+## Coordinate-free semantic primitives
 
-These works establish that representation compatibility is a long-standing problem, not a new problem created by this repository.
+### Ordinal embedding
 
-## Query Drift Compensation — CoLLAs 2026
+Ordinal-embedding literature studies constraints such as “A is closer to B than C” without fixing absolute coordinates. Semantic ABI uses that mathematical primitive as a contract clause; it does **not** claim to invent ordinal constraints.
 
-*Query Drift Compensation: Enabling Compatibility in Continual Learning of Retrieval Embedding Models* studies continual updates of text retrieval encoders and projects new queries into old embedding spaces to continue using already indexed corpora.
+The systems hypothesis is to use stable-ID ordinal/topological assertions as a compatibility interface across changing retrieval implementations and to combine them with provenance, versioning, support, risk and deployment control.
 
-This further narrows any claim around migration-time query projection.
+### Vector Annotation Databases
 
-## Ordinal embedding as a basis for coordinate-free contracts
+A 2026 SSRN paper, *Vector Annotation Databases: An Architecture for Auditable Semantic Retrieval*, argues for explicit data objects and deterministic semantic metadata with vectors as replaceable annotations. It is relevant conceptual prior art for treating embeddings as derived rather than canonical.
 
-Ordinal-embedding literature studies representations from constraints such as "object A is closer to B than to C" rather than requiring absolute coordinates. Results include uniqueness/reconstruction theory and local ordinal embedding.
+### Uncertainty-aware retrieval
 
-Semantic ABI borrows this mathematical primitive as a **contract clause**, not as a claim to have invented ordinal constraints.
+Work such as *DINOSAUR: Distributional Approximate Nearest Neighbour Search for Uncertainty-Aware Retrieval* rejects the assumption that uncertain representations must collapse to a single point. SCF SemanticCells encode disagreement differently; uncertainty-aware retrieval itself is not novel.
 
-The proposed systems hypothesis is different: use ID-level ordinal and topological invariants as a stable compatibility interface across changing retrieval implementations, combine them with provenance/versioning/local risk, and use them to control rollout/fallback.
+### Hubness
 
-## Vector Annotation Databases
+Hubness diagnostics and local-scaling/CSLS-like remedies predate SMA. They are mechanisms, not novelty claims.
 
-A 2026 SSRN paper, *Vector Annotation Databases: An Architecture for Auditable Semantic Retrieval*, argues for explicit data objects and deterministic semantic metadata as a stable retrieval core, with vectors as replaceable annotations.
+## Property testing, deployment gates and statistical risk control
 
-It is relevant conceptual prior art for treating embeddings as derived/replaceable rather than canonical data. Because it is a recent SSRN publication rather than a mature consensus reference, it should be treated as useful prior art rather than definitive validation.
+Semantic ABI must also avoid a broad claim that it invented “testing model properties and using statistics to gate deployment.”
 
-## Uncertainty-aware retrieval
+Relevant prior art includes:
 
-*DINOSAUR: Distributional Approximate Nearest Neighbour Search for Uncertainty-Aware Retrieval* argues against collapsing uncertain representations to a single point and performs ANN over distributional samples.
+- **Learn-Then-Test (LTT)** — converts risk control over a family of candidate rules into a multiple-hypothesis testing problem;
+- **Adaptive Learn-Then-Test** — improves adaptive selection/control over candidate procedures;
+- **Conformal Risk Control / distribution-free risk-controlling prediction sets** — controls general losses rather than only marginal coverage;
+- **Aligning Model Properties via Conformal Risk Control** (NeurIPS 2024) — explicitly combines property-testing ideas with conformal risk control;
+- **Localized Adaptive Risk Control** (NeurIPS 2024) — addresses locally varying risk rather than one global threshold;
+- **Selective Conformal Risk Control** (2025) — combines abstention/selective prediction with risk control.
 
-SCF SemanticCells encode cross-representation disagreement differently, but uncertainty-aware vector retrieval itself is not novel.
+The current `split-chernoff-kl` and `split-preregistered-exact-binomial` methods in this repository are transparent statistical baselines, not new statistical theory. Their purpose is to make Semantic ABI deployment semantics falsifiable and auditable while stronger LTT/CRC/selective methods are compared.
 
-## Hubness
+The exact-binomial baseline is intentionally restricted to **one rule frozen before certification labels are inspected**. Traditional binomial-proportion confidence intervals are appropriate for such fixed Bernoulli safety statements; they must not be misused to justify post-hoc threshold selection on the same holdout.
 
-SMA Phase 0 uses hubness diagnostics and CSLS-inspired correction. Hubness and local-scaling remedies predate this work and remain mechanisms, not novelty claims.
+## Active contract acquisition
+
+`Semantic Diff` prioritizes disagreements between implementations and turns them into ordinal questions for human/domain review. The broad principle of querying informative comparisons is not new.
+
+Relevant prior art includes active learning with label comparisons, active preference learning, active query synthesis and recent preference-data acquisition systems such as ActiveUltraFeedback. These works support the possibility that informative comparisons can reduce annotation cost while constraining novelty claims around “ask only useful pairwise questions.”
+
+Potential differentiation must therefore come from the role those questions play in a **versioned representation-independent semantic contract and deployment lifecycle**, not from active preference querying alone.
+
+## Contract sparsification / Semantic Witness Sets
+
+`SemanticWitnessSet` asks whether a much smaller diagnostic subset of a Semantic Contract can retain the full contract’s observed regression-detection behavior.
+
+Test-suite minimization, requirements-coverage-guided selection, mutation-based adequacy and fault-detection-preserving test reduction are established software-testing research areas. The repository therefore does **not** claim novelty for test-suite reduction itself.
+
+The research question specific to Semantic ABI is narrower:
+
+> Can a compact set of coordinate-free semantic assertions preserve useful fault-detection power across representation implementations and unseen semantic regressions, while hard clauses remain mandatory?
+
+Witness selection must be evaluated on held-out faults. A high training mutation score is insufficient evidence; omitted clauses are never assumed universally redundant.
+
+## Semantic mutation testing
+
+Mutation/metamorphic testing also predates this project in software and ML systems. Semantic mutation testing is used here as an **adequacy instrument**: deliberately corrupt a representation and ask whether the contract detects and localizes the damage. The contribution, if any, must be in how mutation adequacy informs contract acquisition, sparsification and release control—not the existence of mutation testing.
 
 ## What remains potentially differentiated
 
-The current strongest systems hypothesis is:
+The strongest current integrated systems hypothesis is:
 
-> **A data system should expose a stable Semantic ABI above embedding implementations: versioned, coordinate-free assertions of application meaning and selected behavior, with local certification risk, tamper-evident history and runtime rollout/fallback semantics.**
+> **A retrieval/data system should expose a stable Semantic ABI above representation implementations: versioned application invariants evaluated through a common semantic-oracle interface, with contract adequacy tests, support-aware/local risk, statistical rollout certificates, selective fallback, cost-aware repair and tamper-evident release evidence.**
 
-This differs from merely translating embeddings because a candidate implementation can:
+This is meaningfully different from embedding translation alone because a candidate can:
 
-- satisfy application semantics without reproducing the old ranking;
+- satisfy application semantics without reproducing legacy rankings;
 - reproduce geometry yet fail a hard semantic clause;
-- be certified in one semantic region and rejected in another;
-- be dense, sparse, graph-based or otherwise non-isomorphic to the previous representation, provided it can evaluate the contract.
+- be dense, sparse, graph-based or otherwise non-isomorphic to the old representation;
+- be accepted in one supported region and rejected/abstained elsewhere;
+- trigger targeted review/re-embedding rather than full backfill;
+- carry a release certificate bound to exact implementation/preprocessing/evidence identity.
 
-This is a hypothesis, not a novelty conclusion. A broader paper/patent search may still find close work.
+**This is still not a novelty conclusion.** A professional patent search and broader systems-literature search remain necessary before any IP claim.
 
-## Next prior-art target
+## Highest-priority prior-art searches remaining
 
-Before any IP or strong novelty claim, specifically search:
+Before strong publication/IP claims, continue targeted searches for:
 
-- semantic regression contracts for retrieval/ranking systems;
-- invariant-based model deployment gates;
-- specification-driven IR evaluation;
-- regional/selective model rollout based on semantic tests;
-- coordinate-free IR intermediate representations;
-- patents on embedding compatibility certification and semantic regression testing.
+- semantic regression contracts specifically for retrieval/ranking systems;
+- specification-driven information-retrieval deployment gates;
+- region-wise/selective rollout driven by semantic invariants;
+- coordinate-free retrieval intermediate representations beyond vector systems;
+- semantic test-suite sparsification across heterogeneous retrievers;
+- release attestations / software-supply-chain-style manifests for ML retrieval behavior;
+- patents on embedding compatibility certification, semantic regression testing and selective semantic deployment.
 
 ## Kill criterion
 
-If Semantic ABI reduces empirically to ordinary fixed benchmark/regression testing—without useful portability, local risk calibration or rollout economics—the abstraction should be simplified rather than protected for its own sake.
+Semantic ABI should collapse toward ordinary regression testing if representative experiments show that portability, local risk calibration, active acquisition/repair or rollout economics add little beyond conventional benchmark suites.
+
+The project should preserve evidence, not its terminology: if a simpler abstraction wins, keep the simpler abstraction.
