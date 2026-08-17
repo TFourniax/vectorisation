@@ -25,7 +25,7 @@ def test_semantic_diff_detects_local_topology_change():
     assert by_id["a"].severity > 0.0
 
 
-def test_question_miner_surfaces_reversed_top_neighbor_preference():
+def test_question_miner_surfaces_reversed_top_neighbor_preference_and_resolves_clause():
     old = {
         "a": unit([1.0, 0.0]),
         "b": unit([0.99, 0.10]),
@@ -46,3 +46,10 @@ def test_question_miner_surfaces_reversed_top_neighbor_preference():
     assert question.new_preference == "c"
     assert question.priority > 0
     assert "which is genuinely closer" in question.as_prompt()
+
+    clause = question.resolve("c", hard=True, source="expert:review-42")
+    assert clause.anchor == "a"
+    assert clause.positive == "c"
+    assert clause.negative == "b"
+    assert clause.hard
+    assert clause.source == "expert:review-42"
