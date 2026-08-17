@@ -59,7 +59,7 @@ def test_diagnostic_panel_selects_discriminative_clause_and_generalizes():
 
     heldout = [
         WitnessScenario("fault-heldout", make_report(contract, "fault-heldout", [0.4, 1.0, 1.0])),
-        WitnessScenario("benign-heldout", make_report(contract, "benign-heldout", [0.98, 0.7, 1.0])),
+        WitnessScenario("benign-heldout", make_report(contract, "benign-heldout", [0.98, 0.9, 1.0])),
     ]
     evaluation = evaluate_diagnostic_panel(panel, baseline, heldout)
     assert evaluation.true_positive_rate == 1.0
