@@ -1,5 +1,12 @@
 """Semantic Manifold Atlas research prototype."""
 
+from .adequacy import (
+    AdequacyCheck,
+    ContractAdequacyEvidence,
+    ContractAdequacyReport,
+    ContractAdequacyRequirements,
+    assess_contract_adequacy,
+)
 from .alignment import RoutedTransport, TransitionAtlas, TransitionDiagnostics, TransitionGraph
 from .contract_lint import ContractIssue, ContractLintReport, lint_contract
 from .contracts import (
@@ -57,6 +64,11 @@ from .transition_io import load_transition, save_transition
 from .transition_policy import EvidenceGatedTransition, TransitionValidation
 
 __all__ = [
+    "AdequacyCheck",
+    "ContractAdequacyEvidence",
+    "ContractAdequacyReport",
+    "ContractAdequacyRequirements",
+    "assess_contract_adequacy",
     "AtlasIndex",
     "AtlasRecord",
     "SearchHit",
