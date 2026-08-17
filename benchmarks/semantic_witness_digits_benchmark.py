@@ -1,13 +1,14 @@
 """Held-out contract sparsification benchmark on real handwritten digits.
 
-The selector sees only per-clause behavior on a training fault panel. It never
-sees affected-object IDs. Evaluation uses different objects/seeds and weaker as
-well as stronger severities. Random clause subsets of the same size are the
+The selector sees only per-clause behavior on one training instance of four
+fault families and never sees affected-object IDs. Evaluation varies affected
+IDs, footprint and severity, and adds a coherent directional-drift family that
+is absent from witness training. Random clause subsets of identical size are the
 baseline.
 
-This benchmark asks a narrow question: can a compact Semantic Witness Set retain
-the full contract's observed fault-detection decisions on unseen fault
-instances? It does not prove omitted clauses are universally redundant.
+This asks a narrow question: can a compact Semantic Witness Set retain the full
+contract's observed regression decisions on genuinely held-out fault instances?
+It does not prove omitted clauses are universally redundant.
 """
 from __future__ import annotations
 
@@ -18,36 +19,55 @@ from sklearn.datasets import load_digits
 
 from semantic_atlas.contracts import contract_from_labels
 from semantic_atlas.geometry import normalize
-from semantic_atlas.mutation import add_vector_noise, collapse_region, default_semantic_mutations, permute_identities, pull_to_hub
+from semantic_atlas.mutation import (
+    SemanticMutation,
+    add_vector_noise,
+    collapse_region,
+    default_semantic_mutations,
+    permute_identities,
+    pull_to_hub,
+)
 from semantic_atlas.witness import WitnessScenario, build_semantic_witness_set, evaluate_clause_subset
 
 
-def fault_panel(mapping, *, seed: int, fraction: float, weak: bool) -> list:
+def coherent_drift(mapping, object_ids, *, strength: float, seed: int, name: str) -> SemanticMutation:
+    """Move a local set in one shared random direction: an unseen fault family."""
+    ids = [object_id for object_id in object_ids if object_id in mapping]
+    rng = np.random.default_rng(seed)
+    dimension = len(next(iter(mapping.values())))
+    direction = rng.normal(size=dimension).astype(np.float32)
+    direction = normalize(direction.reshape(1, -1))[0]
+    mutated = {object_id: np.asarray(vector, dtype=np.float32).copy() for object_id, vector in mapping.items()}
+    alpha = float(np.clip(strength, 0.0, 1.0))
+    for object_id in ids:
+        mutated[object_id] = normalize(((1.0 - alpha) * mutated[object_id] + alpha * direction).reshape(1, -1))[0]
+    return SemanticMutation(name, mutated, tuple(ids), "coherent-directional-drift", alpha, {"seed": seed})
+
+
+def fault_panel(mapping, *, seed: int, fraction: float, weak: bool) -> list[SemanticMutation]:
     ids = sorted(mapping)
     rng = np.random.default_rng(seed)
     count = max(2, int(round(len(ids) * fraction)))
     chosen = [ids[int(i)] for i in rng.choice(len(ids), size=count, replace=False)]
     if weak:
-        return [
-            permute_identities(mapping, chosen, seed=seed, name=f"permute-{seed}"),
-            collapse_region(mapping, chosen, strength=0.65, name=f"collapse-{seed}"),
-            pull_to_hub(mapping, chosen, strength=0.55, name=f"hub-{seed}"),
-            add_vector_noise(mapping, chosen, sigma=0.20, seed=seed + 1, name=f"noise-{seed}"),
-        ]
+        strength, hub_strength, sigma, drift_strength = 0.65, 0.55, 0.20, 0.30
+    else:
+        strength, hub_strength, sigma, drift_strength = 0.92, 0.82, 0.38, 0.60
+    suffix = f"{seed}-f{fraction:.3f}"
     return [
-        permute_identities(mapping, chosen, seed=seed, name=f"permute-{seed}"),
-        collapse_region(mapping, chosen, strength=0.92, name=f"collapse-{seed}"),
-        pull_to_hub(mapping, chosen, strength=0.82, name=f"hub-{seed}"),
-        add_vector_noise(mapping, chosen, sigma=0.38, seed=seed + 1, name=f"noise-{seed}"),
+        permute_identities(mapping, chosen, seed=seed, name=f"permute-{suffix}"),
+        collapse_region(mapping, chosen, strength=strength, name=f"collapse-{suffix}"),
+        pull_to_hub(mapping, chosen, strength=hub_strength, name=f"hub-{suffix}"),
+        add_vector_noise(mapping, chosen, sigma=sigma, seed=seed + 1, name=f"noise-{suffix}"),
+        coherent_drift(mapping, chosen, strength=drift_strength, seed=seed + 2, name=f"coherent-drift-{suffix}"),
     ]
 
 
 def scenarios_from_mutations(contract, mutations, prefix: str) -> list[WitnessScenario]:
-    scenarios = []
-    for mutation in mutations:
-        report = contract.audit(mutation.vectors, implementation=f"{prefix}:{mutation.name}")
-        scenarios.append(WitnessScenario(mutation.name, report))
-    return scenarios
+    return [
+        WitnessScenario(mutation.name, contract.audit(mutation.vectors, implementation=f"{prefix}:{mutation.name}"))
+        for mutation in mutations
+    ]
 
 
 def random_baseline(contract, baseline, scenarios, *, size: int, repeats: int = 20, seed: int = 991) -> dict:
@@ -57,13 +77,9 @@ def random_baseline(contract, baseline, scenarios, *, size: int, repeats: int = 
     remaining = max(0, size - len(hard))
     rows = []
     for _ in range(repeats):
-        if remaining >= len(available):
-            sampled = available.tolist()
-        else:
-            sampled = rng.choice(available, size=remaining, replace=False).tolist()
+        sampled = available.tolist() if remaining >= len(available) else rng.choice(available, size=remaining, replace=False).tolist()
         indices = sorted(set(hard + [int(index) for index in sampled]))
-        evaluation = evaluate_clause_subset(contract, baseline, scenarios, indices, detection_drop=0.03)
-        rows.append(evaluation)
+        rows.append(evaluate_clause_subset(contract, baseline, scenarios, indices, detection_drop=0.03))
     return {
         "positive_recall_mean": float(np.mean([row.positive_recall for row in rows])),
         "positive_recall_max": float(np.max([row.positive_recall for row in rows])),
@@ -95,17 +111,21 @@ def main() -> None:
     )
     baseline = contract.audit(mapping, implementation="pixels64:baseline")
 
-    # Selector training panel: one strong instance of each generic fault family.
-    training_mutations = default_semantic_mutations(mapping, fraction=0.10, seed=23)
-    training = scenarios_from_mutations(contract, training_mutations, "train")
+    # Selection gets only four broad, strong fault families at 10% footprint.
+    training = scenarios_from_mutations(
+        contract,
+        default_semantic_mutations(mapping, fraction=0.10, seed=23),
+        "train",
+    )
 
-    # Held-out panels use different affected IDs and both weaker and stronger
-    # severities. The selector never observes these reports.
-    heldout_mutations = fault_panel(mapping, seed=101, fraction=0.08, weak=True) + fault_panel(
-        mapping, seed=211, fraction=0.15, weak=False
+    # Held-out evaluation changes affected IDs, footprint and severity, and adds
+    # coherent directional drift which the selector never observed.
+    heldout_mutations = (
+        fault_panel(mapping, seed=101, fraction=0.03, weak=True)
+        + fault_panel(mapping, seed=211, fraction=0.05, weak=False)
+        + fault_panel(mapping, seed=307, fraction=0.10, weak=False)
     )
     heldout = scenarios_from_mutations(contract, heldout_mutations, "heldout")
-
     full_heldout = evaluate_clause_subset(
         contract,
         baseline,
@@ -133,12 +153,6 @@ def main() -> None:
             witness.selected_clause_indices,
             detection_drop=0.03,
         )
-        random = random_baseline(
-            contract,
-            baseline,
-            heldout,
-            size=len(witness.selected_clause_indices),
-        )
         rows.append(
             {
                 "budget": budget,
@@ -158,7 +172,12 @@ def main() -> None:
                     "retained_loss": heldout_eval.mean_retained_loss_mass,
                     "object_coverage": heldout_eval.object_coverage,
                 },
-                "random_same_size": random,
+                "random_same_size": random_baseline(
+                    contract,
+                    baseline,
+                    heldout,
+                    size=len(witness.selected_clause_indices),
+                ),
             }
         )
 
@@ -170,6 +189,8 @@ def main() -> None:
                 "source_contract_clauses": len(contract.clauses),
                 "training_fault_instances": len(training),
                 "heldout_fault_instances": len(heldout),
+                "heldout_fault_fractions": [0.03, 0.05, 0.10],
+                "heldout_unseen_fault_family": "coherent-directional-drift",
                 "detection_score_drop": 0.03,
                 "full_contract_heldout": {
                     "positive_recall": full_heldout.positive_recall,
@@ -178,8 +199,9 @@ def main() -> None:
                 },
                 "witness_curve": rows,
                 "warning": (
-                    "Witness selection is trained on controlled fault families. Held-out seeds/severities test instance "
-                    "generalization, not unseen fault-family generalization or production semantic completeness."
+                    "Witness selection is trained on controlled broad faults. Held-out evaluation changes IDs, footprint and severity "
+                    "and adds one unseen fault family, but this remains a small real-data mechanism benchmark rather than a guarantee "
+                    "of production semantic completeness."
                 ),
             },
             indent=2,
