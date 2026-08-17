@@ -2,306 +2,326 @@
 
 The roadmap is evidence-gated. **Code does not complete a phase; surviving a falsification gate does.** Negative results change the architecture instead of being hidden.
 
-See [`CURRENT_STATUS.md`](CURRENT_STATUS.md) for the exact dated evidence.
+See [`CURRENT_STATUS.md`](CURRENT_STATUS.md) for exact dated evidence and [`evidence-manifest.json`](evidence-manifest.json) for machine-bound provenance.
 
-## Track A — historical retrieval/migration research
+## Track A — supporting retrieval/migration research
 
-### A0. Semantic Manifold Atlas — implemented mechanism kernel
+### A0. Semantic Manifold Atlas — supporting mechanism kernel
 
-Implemented:
+Implemented local charts, mutual-kNN topology, hubness/density diagnostics, CSLS-inspired ranking, facet interaction, `bridge`/`boundary` and hybrid persistence.
 
-- overlapping local charts;
-- mutual-kNN topology;
-- hubness/density and intrinsic-dimension diagnostics;
-- CSLS-inspired hub-robust scoring;
-- facet late interaction;
-- `bridge`, `boundary`, chart nerve graph;
-- hybrid SQLite/vector persistence.
-
-Evidence: strong synthetic hubness stress result.  
-Status: **supporting research**, not a claim to replace mature ANN engines.
+Status: useful supporting machinery; **not** a claim to replace mature ANN engines.
 
 ### A1. Semantic Coordinate Fabric — implemented, novelty narrowed
 
-Implemented:
+Implemented global/local transitions, held-out diagnostics, routing/cycle checks, partial migration, virtual materialization, drift/fault-lines and `EvidenceGatedTransition`.
 
-- global scaled Procrustes;
-- local transition atlases;
-- held-out global/local diagnostics;
-- query-dependent routes and cycle checks;
-- partial migration fusion;
-- semantic cells and virtual materialization;
-- drift/fault-line diagnostics;
-- transition format v2;
-- `EvidenceGatedTransition`.
+Real BGE→MiniLM SciFact result:
 
-Real neural result on BGE→MiniLM SciFact:
-
-- global target-neighbor overlap@10: **0.4745**;
-- local atlas: **0.3680**;
+- global target-neighbor overlap@10 **0.4745**;
+- local atlas **0.3680**;
 - held-out selector chooses **global**.
 
-Status: **local superiority falsified on this pair**. SCF remains migration machinery whose complexity must win a holdout. Cross-model translation/local-composable methods have strong 2025–2027 prior art.
+Status: local superiority falsified on this pair. SCF remains optional migration machinery and must beat simpler adapters on holdout.
 
-## Track B — Semantic ABI / change-control core
+## Track B — Semantic ABI core
 
-### B0. Coordinate-free Semantic ABI — first inter-paradigm gate crossed
+### B0. Portable application contract — first cross-paradigm gate crossed
 
 Implemented:
 
-- ordinal, neighborhood and reciprocal-neighbor clauses;
-- hard/soft requirements, weights and provenance;
-- application-semantic vs legacy-behavior separation;
-- canonical digest and contract ledger;
-- contract linting;
-- per-object risk;
+- ordinal/neighborhood/reciprocal clauses;
+- hard/soft requirements, weights, provenance;
+- canonical digest, ledger, linting;
 - `SemanticOracle` abstraction;
-- dense and callback adapters;
+- dense/callback adapters;
 - full and single-clause audit.
 
 Real SciFact evidence:
 
-- exact same **650-clause contract digest** audits BGE dense and BM25 sparse;
+- same 650-clause digest executes against BGE dense and BM25 sparse;
 - BGE ABI ~**0.9467**;
-- BM25 ABI ~**0.8913**;
-- BM25 evaluates 650/650 clauses with no vectors exposed.
+- BM25 ~**0.8913**;
+- BM25 evaluates 650/650 clauses without exposing dense vectors.
 
-Status: **first real dense↔sparse portability gate crossed**.  
-Next gate: repeat with graph/hybrid/late-interaction/multimodal implementations and multiple datasets.
+Status: **dense↔sparse executable portability crossed**. Portability is not predictive-validity proof.
 
-### B1. Support-aware selective rollout — first neural gate crossed
+Next gates:
+
+1. graph/late-interaction implementation;
+2. production hybrid implementation;
+3. multimodal implementation;
+4. multiple domain/language datasets.
+
+### B1. Contract conformity vs contract adequacy — new core distinction
+
+The neural repair experiments show that an application contract can recover its clean ABI score while held-out nDCG remains damaged outside the contract's observation surface.
 
 Implemented:
 
-- contract coverage;
-- support/OOD-aware local risk;
-- `CertifiedSemanticABIGate`;
-- global + slice risk portfolios;
-- conservative family-wise Chernoff/KL calibration;
-- single-rule pre-registered exact-binomial calibration.
+- `ContractAdequacyEvidence`;
+- `ContractAdequacyRequirements`;
+- `ContractAdequacyReport`;
+- explicit `adequate` / `failed` / `insufficient_evidence` states;
+- no universal library-wide adequacy threshold.
 
-SciFact evidence:
+Current adequacy axes:
+
+- object coverage;
+- mutation kill/localization;
+- predictive correlation;
+- predictive lift over ordinary validation;
+- held-out cases;
+- datasets;
+- fault families.
+
+Status: **architecturally required by evidence; predictive gate still being replicated.**
+
+Next gates:
+
+1. finish SciFact/NFCorpus/FiQA ABI-vs-nDCG baseline study;
+2. predeclare adequacy policies before final held-out evaluation;
+3. test whether mutation/coverage metrics actually predict real blind spots;
+4. develop slice-specific adequacy for rare domains/languages.
+
+### B2. Support-aware selective rollout — first neural gate crossed
+
+Implemented support/OOD-aware local risk, `CertifiedSemanticABIGate`, slice portfolios, conservative family-wise calibration and preregistered exact-binomial calibration.
+
+SciFact:
 
 - held-out failure-risk AUC ~**0.7875**;
-- 10% SLA: both methods correctly abstain;
-- 15% SLA: simultaneous family remains uncertified, pre-registered exact rule certifies upper risk ~**13.16%**;
+- 10% SLA rejected by both methods;
+- 15% preregistered exact rule certified, upper ~**13.16%**;
 - held-out accepted coverage **98.5%**, realized accepted risk ~**10.15%**.
 
-Status: **promising first sample-efficiency result**.  
-Next gates:
+Next baselines:
 
-1. Learn-Then-Test baseline;
-2. conformal/selective risk-control baselines;
-3. confidence-sequence/e-value baselines;
-4. domain/language/time/configuration shift;
-5. calibration-size curves and required sample complexity.
+- Learn-Then-Test;
+- Adaptive LTT/e-processes;
+- conformal/selective risk control;
+- domain/language/time/configuration shift;
+- calibration-size/sample-complexity curves.
 
-### B2. Progressive Semantic Audit — first cost gate crossed
-
-Problem: a useful contract may eventually contain tens of thousands or millions of clauses. A fixed tiny subset proved unsafe.
-
-Implemented policy:
-
-- every hard clause evaluated exhaustively;
-- weighted soft clauses sampled with replacement;
-- cached oracle evaluation;
-- predeclared batch looks;
-- exact-binomial upper/lower bounds;
-- global alpha split across looks/tails;
-- early PASS/FAIL for a weighted soft-clause violation-rate SLA;
-- exact full fallback near the boundary.
-
-Digits evidence with 1,500 clauses:
-
-- **15/15** decisions match exhaustive audit;
-- **12/15** finish early;
-- mean unique-clause fraction for early decisions: **7.17%**;
-- near-boundary cases correctly fall back to 100%.
-
-Status: **promoted research mechanism**. Sequential auditing itself has substantial prior art; the research question is whether it makes Semantic ABI audits economically scalable.
-
-Next gates:
-
-1. 10k / 100k / 1M clause replay/synthetic scale;
-2. heterogeneous evaluation costs;
-3. weighted/sliced/stratified sampling;
-4. finite-population without-replacement methods;
-5. confidence sequences / e-processes instead of simple alpha spending;
-6. adversarial sparse-fault simulations;
-7. real remote-oracle latency/cost measurements.
-
-### B3. Contract acquisition — promising, not solved
+### B3. Progressive Semantic Audit — strong mechanism/scale gate
 
 Implemented:
 
-- `semantic_diff()`;
-- high-value ordinal question generation;
-- provenance-ready clauses.
+- exhaustive hard clauses;
+- weight-proportional soft sampling with replacement;
+- cached oracle evaluation;
+- predeclared batch looks;
+- finite-sample upper/lower bounds with global error allocation;
+- early PASS/FAIL on soft-clause violation SLA;
+- exact fallback near the boundary.
 
-Digits mechanism evidence:
+Evidence:
 
-- all disagreements label-resolvable: ~11.7%;
-- top 25 questions: **68%**;
-- top 50: **60%**.
+- real Digits 1,500 clauses: **15/15** exact decision agreement, **12/15** early, mean early unique fraction **7.17%**;
+- procedural 10k/100k/250k: **10/10** agreement, **9/10** early;
+- at 250k, representative far-from-boundary decisions use **0.04–0.3992%** of clauses.
+
+Status: **strongest current audit-cost mechanism**. Sequential testing itself is prior art; novelty cannot rest on early stopping.
+
+Next gates:
+
+1. Adaptive LTT/e-process baseline;
+2. stratified/slice-aware sampling;
+3. non-iid sparse-fault stress;
+4. heterogeneous remote-oracle costs;
+5. million-clause scale;
+6. wall-clock/API-cost measurements.
+
+### B4. Contract acquisition — promising, not solved
+
+`Semantic Diff` currently yields ~**5–6×** enrichment of label-resolvable questions on Digits.
 
 Next gates:
 
 - human/domain expert study;
-- active preference/query baselines;
+- random, uncertainty, coverage-guided and active-learning baselines;
 - annotation-cost curves;
-- downstream failure-prediction gain per judgment;
-- anti-model-leakage tests so current retriever quirks are not frozen as truth.
+- anti-model-leakage checks;
+- clauses gained per real downstream regression caught.
 
-### B4. Contract adequacy — implemented mutation baseline
+### B5. Mutation / adequacy testing
 
-Implemented semantic mutations:
+Current controlled mutations: identity permutation, local collapse, hub pull, coordinate noise.
 
-- identity permutation;
-- local collapse;
-- hub pull;
-- coordinate noise.
-
-Current contracts kill the tested mutation families on Digits, but localization remains materially weaker than detection.
+Current contracts kill the tested Digits families globally; localization is weaker.
 
 Next gates:
 
-- richer fault families;
-- dense/sparse/graph-specific mutants;
-- contract adequacy threshold for release;
-- relation between mutation score and real downstream regressions.
+- realistic retriever/index faults;
+- dense/sparse/graph-specific faults;
+- relation between mutation adequacy and downstream predictive adequacy;
+- held-out mutation families.
 
-## Track C — failed compression experiments retained as evidence
+## Track C — typed implementation integrity
 
-### C0. Fixed Semantic Witness Set — **not promoted**
+### C0. Integrity canaries — positive but incomplete
 
-Held-out stress results on a 1,500-clause contract:
+A separate implementation-integrity role was added experimentally after application conformity proved too sparse for corruption recovery.
+
+SciFact/BGE 10% corruption:
+
+- application-only document coverage **32.3%**;
+- + random integrity anchors **67.0%**;
+- + coverage-oriented anchors **72.5%**.
+
+At repair budget 100, best lost-nDCG recovery improves from ~**62.3%** application-only to ~**70.2–70.8%** with integrity canaries; at budget 180, coverage-oriented integrity reaches ~**71.2%**.
+
+Status: useful observability signal, **not portable application truth** and not a complete repair solution.
+
+Critical issue: naive highest-object-risk can target a healthy neighborhood anchor while a damaged neighbor is causal.
+
+Next gates:
+
+1. formal contract-role typing;
+2. clause-incidence / causal fault attribution;
+3. implementation-specific integrity release policy;
+4. integrity canaries for sparse/hybrid indexes;
+5. compare random vs coverage vs graph-centrality canary placement.
+
+## Track D — failed fixed-compression experiments retained as evidence
+
+### D0. Fixed Semantic Witness — not promoted
+
+Held-out stress on 1,500 clauses:
 
 - 10 clauses: TPR 62.5%, FPR 0%;
-- 25 clauses: TPR 100%, FPR 28.6%;
-- 100 clauses: TPR 100%, FPR 42.9%.
+- 25: TPR 100%, FPR 28.6%;
+- 100: TPR 100%, FPR 42.9%.
 
-Random same-size panels remain competitive overall.
+### D1. Learned Diagnostic Panel — falsified in current form
 
-Conclusion: a tiny deterministic clause subset is not evidence of semantic equivalence.
+Perfect training discrimination → **0% held-out regression recall**.
 
-### C1. Discriminative fixed Diagnostic Panel — **falsified in current form**
+Conclusion: the full normative contract remains; cost reduction uses statistically controlled sampling, not unproved deterministic equivalence.
 
-Perfect training discrimination → **0% held-out regression recall** across budgets 5–100.
+## Track E — active repair economics
 
-Conclusion: object-local clauses overfit the location of training faults. Do not revive this approach without a fundamentally different coverage model.
+### Real neural gate — targeted >> random, 90% recovery not reached
 
-These negative results directly motivated Progressive Semantic Audit.
+SciFact/BGE, 1,800 docs, 350 train queries, 200 untouched test queries.
 
-## Track D — active repair and migration economics
+At 10% corruption:
 
-Current repair baselines:
+- nDCG **0.7875 → 0.6970**;
+- budget25 cost-aware selection: **88%** corrupted docs, ~**33.9%** nDCG-gap recovery;
+- random: ~**7.3%** corrupted, ~**1.5%** recovery;
+- budget180 targeted best ~**50%** recovery vs random ~**9%**.
 
-- risk × violation centrality × diversity;
-- cost-aware known-violation coverage.
+No tested planner reaches **90%** lost-nDCG recovery. Application conformity can saturate before downstream repair.
 
-Digits deliberate corruption evidence:
+Status: **economic targeting signal is real, full repair claim fails.**
 
-- 25-object budget: **68%** truly corrupt vs 10% random;
-- 50: **54%**;
-- 100: **37%**.
+Next gates:
 
-### Next objective
+1. clause-role/incidence-aware repair;
+2. multiple real fault families, not only identity permutation;
+3. highest-risk/random/submodular baselines;
+4. certified-coverage gained per euro/token/GPU-second;
+5. joint re-embedding/fallback stopping policy.
 
-Replace “corrupt-object precision” with the economically meaningful target:
+## Track F — multi-dataset predictive-validity falsification
 
-> **certified semantic coverage gained per euro / token / GPU-second / human-review minute.**
+Current protocol:
 
-Required baselines:
+- SciFact, NFCorpus, FiQA;
+- MiniLM, BGE, BM25, BGE+BM25 hybrid;
+- controlled degradations;
+- train qrels only for contract authoring;
+- untouched test qrels for downstream quality;
+- compare ABI→test quality with **ordinary train nDCG→test quality**.
 
-- random;
-- highest risk;
-- uncertainty only;
-- submodular/facility-location selection;
-- full re-embedding;
-- partial re-embedding + fallback;
-- joint anchor/re-embedding selection.
+FiQA first completed result:
 
-Kill rule: remove planner sophistication if it does not beat simple policies on cost-to-certified-coverage.
+- ABI Spearman **0.9636**;
+- train-nDCG baseline **0.9522**;
+- lift only **+0.0115**;
+- baseline Pearson **0.9945** > ABI **0.9823**;
+- natural-only both Spearman **0.80**.
 
-## Track E — real infrastructure adapters
+Status: **FiQA narrows aggregate-predictive superiority.** ABI tracks quality strongly but is not clearly better than normal validation. SciFact/NFCorpus remain required for cross-dataset conclusion.
+
+Interpretation rule is fixed in advance: if ABI does not beat ordinary validation, do not move the goalposts. Its remaining value must be evaluated as normative hard-invariant portability, local support/risk and controlled deployment.
+
+## Track G — real infrastructure adapters
 
 Do not reimplement ANN.
 
-Priority adapters:
+Priority:
 
-1. Qdrant;
-2. pgvector;
-3. Elasticsearch/BM25 + dense hybrid;
-4. Vespa or equivalent hybrid/late-interaction engine;
+1. Elasticsearch/BM25+dense hybrid — fastest way to validate non-vector implementation semantics in a real engine;
+2. Qdrant;
+3. pgvector;
+4. Vespa/late interaction;
 5. HNSW/DiskANN benchmark adapters.
 
 Required observability:
 
-- direct vs virtual representation provenance;
-- contract/risk canaries;
+- direct/virtual representation provenance;
+- application vs integrity contract roles;
 - quarantine/fallback/rollback;
-- p50/p95/p99 query and audit latency;
-- artifact and memory size;
-- backfill cost avoided.
+- query/audit p50/p95/p99;
+- backfill cost avoided;
+- evidence digests.
 
-## Track F — richer invariants only when simpler clauses fail
+## Track H — richer invariants only when evidence demands them
 
 Candidates:
 
 - typed relations/hyperedges;
-- temporal order and freshness;
-- contradiction/contested-semantic regions;
-- provenance/trust requirements;
-- monotonic/domain constraints;
+- temporal/freshness constraints;
+- contradictions/contested regions;
+- provenance/trust;
+- monotonic domain constraints;
 - multimodal consistency;
 - distributional uncertainty;
-- topological invariants;
 - causal/counterfactual assertions.
 
-Rule: every new clause family must buy measurable downstream predictive power per unit authoring/audit complexity.
+Rule: every richer clause must buy measurable adequacy/predictive/operational value per unit authoring and audit cost.
 
-## Track G — release governance / open interchange
+## Track I — release governance / open interchange
 
-If multi-system evidence survives:
+Generic AI attestation/certificates already have prior art. The narrower research target is retrieval-specific evidence bound to a portable Semantic ABI.
 
-- immutable implementation/preprocessing fingerprints;
-- signed Semantic Release Certificates;
-- expiry and revocation;
+If evidence survives:
+
+- explicit adequacy profile in release governance;
+- application/integrity role manifests;
+- signed certificates;
+- expiry/revocation;
 - transparency log;
-- reviewer identity and approval policy;
-- contract semantic-versioning rules;
-- evidence bundles;
-- conformance suite for retrievers;
-- representation-neutral clause/interchange schema.
+- reviewer identity;
+- contract semantic versioning;
+- retriever conformance suite.
 
-The strategic objective is **representation independence under explicit semantic obligations**.
+## Track J — evidence freshness — implemented baseline
 
-## Track H — evidence freshness
+Promoted evidence is bound to:
 
-Documentation itself must become auditable.
+- GitHub Actions run ID/head SHA;
+- artifact SHA-256;
+- Git blob identity of evidence-sensitive sources.
 
-In progress:
-
-- GitHub Actions artifact digests;
-- `docs/evidence-manifest.json`;
-- source Git-blob fingerprints for evidence-sensitive algorithms/benchmarks;
-- CI failure when those blobs change without regenerated evidence.
-
-Once enabled, a benchmark number cannot remain silently “current” after its implementation changes.
+`tools/check_evidence_freshness.py` runs independently in CI. Relevant source changes invalidate promoted evidence until regenerated.
 
 ## Current highest-value sequence
 
-1. finish machine-enforced evidence manifest;
-2. replicate SciFact results on several BEIR/MTEB datasets and encoder pairs;
-3. add a third representation paradigm (graph/hybrid/late interaction);
-4. scale Progressive Audit by two to three orders of magnitude;
-5. benchmark LTT / confidence-sequence / shift-aware certification;
-6. connect Qdrant + pgvector + Elasticsearch/Vespa;
-7. measure end-to-end migration/re-certification economics;
-8. only then consider protocol standardization, publication or IP claims.
+1. finish SciFact/NFCorpus multi-dataset predictive-validity runs;
+2. freeze first cross-dataset `ContractAdequacy` evidence profile;
+3. implement clause-role/incidence-aware repair and retest neural corruption economics;
+4. benchmark Progressive Audit against Adaptive LTT/e-processes;
+5. add graph/late-interaction representation paradigm;
+6. connect real Elasticsearch/Qdrant/pgvector/Vespa backends;
+7. run multilingual/domain-shift adequacy and rollout tests;
+8. run human contract-acquisition study;
+9. only then consider protocol standardization, publication or IP claims.
 
 ## End-state hypothesis
 
-The project is no longer aiming for “a better vector table”. The end-state hypothesis is a system in which data has:
+Not “a better vector table”, but a system where semantic infrastructure has:
 
-**stable identity + replaceable representations + declared invariants + uncertainty/support + evidence-gated rollout + provenance + controlled semantic evolution.**
+**stable identity + portable application invariants + explicit contract adequacy + typed implementation integrity + replaceable representations + support/risk + evidence-gated rollout + repair + provenance + controlled semantic evolution.**
