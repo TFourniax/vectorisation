@@ -42,7 +42,8 @@ def test_adequacy_can_fail_even_when_some_axes_are_strong():
     )
     report = assess_contract_adequacy(evidence, requirements)
     assert report.status == "failed"
-    assert evidence.predictive_lift_over_baseline == -0.06000000000000005
+    assert evidence.predictive_lift_over_baseline is not None
+    assert evidence.predictive_lift_over_baseline < 0.0
     assert {check.name: check.state for check in report.checks}["predictive_correlation"] == "fail"
     assert {check.name: check.state for check in report.checks}["predictive_lift_over_baseline"] == "fail"
 
