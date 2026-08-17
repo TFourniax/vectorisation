@@ -22,3 +22,13 @@ jobs:
       - run: pip install -e '.[dev]'
       - run: pytest
       - run: python benchmarks/hubness_benchmark.py
+
+  evidence-freshness:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Verify promoted evidence still matches source blobs
+        run: python tools/check_evidence_freshness.py
