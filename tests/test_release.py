@@ -24,7 +24,7 @@ def test_release_certificate_roundtrip_and_digest(tmp_path):
     implementation, report, coverage, risk = certificate_inputs()
     evidence_bytes = b"benchmark-json"
     evidence = EvidenceReference("benchmark.json", hashlib.sha256(evidence_bytes).hexdigest())
-    certificate = make_release_certificate(implementation, report, coverage, risk, evidence=[evidence], status="candidate")
+    certificate = make_release_certificate(implementation, report, coverage, risk, evidence=[evidence], status="certified")
     path = certificate.save(tmp_path / "release.json")
     loaded = SemanticReleaseCertificate.load(path)
 
@@ -33,6 +33,12 @@ def test_release_certificate_roundtrip_and_digest(tmp_path):
     assert loaded.rollout_eligible
     assert loaded.verify_evidence({"benchmark.json": evidence_bytes})["benchmark.json"]
     assert not loaded.verify_evidence({"benchmark.json": b"tampered"})["benchmark.json"]
+
+
+def test_candidate_status_is_never_rollout_eligible_even_with_strong_metrics():
+    implementation, report, coverage, risk = certificate_inputs()
+    candidate = make_release_certificate(implementation, report, coverage, risk, status="candidate")
+    assert not candidate.rollout_eligible
 
 
 def test_release_certificate_detects_manifest_tampering(tmp_path):
