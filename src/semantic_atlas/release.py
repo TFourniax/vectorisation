@@ -123,8 +123,13 @@ class SemanticReleaseCertificate:
 
     @property
     def rollout_eligible(self) -> bool:
+        # Eligibility is an explicit governance decision, not something inferred
+        # from individually good-looking metrics. A candidate/uncertified
+        # manifest must never become deployable merely because the embedded
+        # certificate happens to be numerically strong.
         return bool(
-            self.hard_pass
+            self.status == "certified"
+            and self.hard_pass
             and self.risk_certificate.certified
             and self.audit_score > 0.0
             and self.contract_object_coverage > 0.0
