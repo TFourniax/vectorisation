@@ -15,6 +15,13 @@ from .contracts import (
     contract_from_labels,
 )
 from .core import AtlasIndex, AtlasRecord, SearchHit, SearchPolicy
+from .diagnostic import (
+    DiagnosticClause,
+    DiagnosticEvaluation,
+    SemanticDiagnosticPanel,
+    build_semantic_diagnostic_panel,
+    evaluate_diagnostic_panel,
+)
 from .drift import DriftPoint, DriftReport, compare_indexes
 from .embed import FeatureHashEmbedder
 from .fabric import FabricRecord, SemanticCell, SemanticFabric, SpaceSpec
@@ -101,6 +108,11 @@ __all__ = [
     "DenseVectorOracle",
     "CallbackSemanticOracle",
     "audit_contract",
+    "DiagnosticClause",
+    "DiagnosticEvaluation",
+    "SemanticDiagnosticPanel",
+    "build_semantic_diagnostic_panel",
+    "evaluate_diagnostic_panel",
     "RepairCandidate",
     "RepairPlan",
     "plan_repairs",
