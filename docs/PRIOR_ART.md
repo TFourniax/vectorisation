@@ -69,9 +69,11 @@ The systems hypothesis is to use stable-ID ordinal/topological assertions as a c
 
 A 2026 SSRN paper, *Vector Annotation Databases: An Architecture for Auditable Semantic Retrieval*, argues for explicit data objects and deterministic semantic metadata with vectors as replaceable annotations. It is relevant conceptual prior art for treating embeddings as derived rather than canonical.
 
-### Uncertainty-aware retrieval
+### Uncertainty-aware and adaptive retrieval
 
 Work such as *DINOSAUR: Distributional Approximate Nearest Neighbour Search for Uncertainty-Aware Retrieval* rejects the assumption that uncertain representations must collapse to a single point. SCF SemanticCells encode disagreement differently; uncertainty-aware retrieval itself is not novel.
+
+Moskvoretskii et al., *Adaptive Retrieval Without Self-Knowledge? Bringing Uncertainty Back Home* (ACL 2025), compare 35 adaptive-retrieval/uncertainty approaches across six datasets and show that relatively simple uncertainty techniques can outperform more elaborate adaptive pipelines on efficiency/self-knowledge while retaining comparable QA quality. This reinforces the repository rule that complex runtime routing must beat simple uncertainty baselines before it is promoted.
 
 ### Hubness
 
@@ -79,20 +81,34 @@ Hubness diagnostics and local-scaling/CSLS-like remedies predate SMA. They are m
 
 ## Property testing, deployment gates and statistical risk control
 
-Semantic ABI must also avoid a broad claim that it invented “testing model properties and using statistics to gate deployment.”
+Semantic ABI must avoid a broad claim that it invented “testing model properties and using statistics to gate deployment.”
 
 Relevant prior art includes:
 
 - **Learn-Then-Test (LTT)** — converts risk control over a family of candidate rules into a multiple-hypothesis testing problem;
-- **Adaptive Learn-Then-Test** — improves adaptive selection/control over candidate procedures;
+- **Adaptive Learn-Then-Test (aLTT)** — Zecchin, Park and Simeone, ICML 2025, uses sequential data-dependent multiple-hypothesis testing with e-processes and early termination while retaining finite-sample population-risk guarantees;
 - **Conformal Risk Control / distribution-free risk-controlling prediction sets** — controls general losses rather than only marginal coverage;
 - **Aligning Model Properties via Conformal Risk Control** (NeurIPS 2024) — explicitly combines property-testing ideas with conformal risk control;
 - **Localized Adaptive Risk Control** (NeurIPS 2024) — addresses locally varying risk rather than one global threshold;
 - **Selective Conformal Risk Control** (2025) — combines abstention/selective prediction with risk control.
 
-The current `split-chernoff-kl` and `split-preregistered-exact-binomial` methods in this repository are transparent statistical baselines, not new statistical theory. Their purpose is to make Semantic ABI deployment semantics falsifiable and auditable while stronger LTT/CRC/selective methods are compared.
+The current `split-chernoff-kl`, `split-preregistered-exact-binomial` and progressive-audit alpha-spending procedures in this repository are transparent statistical baselines, **not new statistical theory**. In particular, the fact that `progressive_semantic_audit()` can stop early is not itself a novelty claim: sequential testing and adaptive early stopping with stronger e-process machinery already exist.
 
-The exact-binomial baseline is intentionally restricted to **one rule frozen before certification labels are inspected**. Traditional binomial-proportion confidence intervals are appropriate for such fixed Bernoulli safety statements; they must not be misused to justify post-hoc threshold selection on the same holdout.
+Potential differentiation must be tested at the systems level: whether sequential risk control applied to a **portable hard/soft Semantic Contract** materially reduces the cost of auditing heterogeneous retrieval implementations while remaining composable with fallback, repair and release evidence.
+
+The exact-binomial rollout baseline is intentionally restricted to **one rule frozen before certification labels are inspected**. Traditional binomial-proportion confidence intervals are appropriate for such fixed Bernoulli safety statements; they must not be misused to justify post-hoc threshold selection on the same holdout.
+
+## Retrieval test adequacy and coverage
+
+Kim, Pasini and Tonella, *Testing Retrieval-Augmented Generation Systems with Chunk Coverage* (2026), introduce **Chunk Coverage** as an oracle-independent adequacy criterion for retrieval testing and use coverage-guided query selection/generation to exercise previously uncovered retrieval regions. Their experiments report faster coverage growth and earlier fault discovery than random/redundancy-biased baselines.
+
+This is close prior art for any broad claim that this repository invented:
+
+- retrieval test coverage as an adequacy signal;
+- coverage-guided test selection;
+- using structural coverage to discover retrieval faults earlier.
+
+Semantic ABI's `contract_coverage()` is different in object: it measures how much of the logical corpus is referenced by a normative semantic contract rather than how much of a corpus has been retrieved by a query test suite. But the conceptual neighborhood is now explicit, and future contract-acquisition experiments must compare against chunk/retrieval-coverage-guided baselines instead of treating coverage as an unexplored idea.
 
 ## Active contract acquisition
 
@@ -102,27 +118,25 @@ Relevant prior art includes active learning with label comparisons, active prefe
 
 Potential differentiation must therefore come from the role those questions play in a **versioned representation-independent semantic contract and deployment lifecycle**, not from active preference querying alone.
 
-## Contract sparsification / Semantic Witness Sets
+## Contract sparsification / diagnostic subsets
 
-`SemanticWitnessSet` asks whether a much smaller diagnostic subset of a Semantic Contract can retain the full contract’s observed regression-detection behavior.
+The repository experimentally asked whether a much smaller fixed subset of a Semantic Contract could retain the full contract’s regression-detection behavior.
 
 Test-suite minimization, requirements-coverage-guided selection, mutation-based adequacy and fault-detection-preserving test reduction are established software-testing research areas. The repository therefore does **not** claim novelty for test-suite reduction itself.
 
-The research question specific to Semantic ABI is narrower:
+More importantly, current evidence **falsified the naive fixed-subset approach**: greedy witness sets lost sensitivity/specificity on held-out localized faults, and a discriminative diagnostic panel overfit affected object identities. The current architecture therefore keeps the full contract normative and investigates randomized/progressive evaluation instead of claiming that a tiny deterministic witness is equivalent to the contract.
 
-> Can a compact set of coordinate-free semantic assertions preserve useful fault-detection power across representation implementations and unseen semantic regressions, while hard clauses remain mandatory?
-
-Witness selection must be evaluated on held-out faults. A high training mutation score is insufficient evidence; omitted clauses are never assumed universally redundant.
+This negative result matters for novelty discipline: future work should not rename ordinary test minimization as a semantic invention. Any compact/cheap audit mechanism must establish a statistically explicit relationship to the full contract on unseen faults.
 
 ## Semantic mutation testing
 
-Mutation/metamorphic testing also predates this project in software and ML systems. Semantic mutation testing is used here as an **adequacy instrument**: deliberately corrupt a representation and ask whether the contract detects and localizes the damage. The contribution, if any, must be in how mutation adequacy informs contract acquisition, sparsification and release control—not the existence of mutation testing.
+Mutation/metamorphic testing also predates this project in software and ML systems. Semantic mutation testing is used here as an **adequacy instrument**: deliberately corrupt a representation and ask whether the contract detects and localizes the damage. The contribution, if any, must be in how mutation adequacy informs contract acquisition and release control—not the existence of mutation testing.
 
 ## What remains potentially differentiated
 
 The strongest current integrated systems hypothesis is:
 
-> **A retrieval/data system should expose a stable Semantic ABI above representation implementations: versioned application invariants evaluated through a common semantic-oracle interface, with contract adequacy tests, support-aware/local risk, statistical rollout certificates, selective fallback, cost-aware repair and tamper-evident release evidence.**
+> **A retrieval/data system should expose a stable Semantic ABI above representation implementations: versioned application invariants evaluated through a common semantic-oracle interface, with contract adequacy tests, support-aware/local risk, statistically controlled progressive/full audit, rollout certificates, selective fallback, cost-aware repair and tamper-evident release evidence.**
 
 This is meaningfully different from embedding translation alone because a candidate can:
 
@@ -143,7 +157,7 @@ Before strong publication/IP claims, continue targeted searches for:
 - specification-driven information-retrieval deployment gates;
 - region-wise/selective rollout driven by semantic invariants;
 - coordinate-free retrieval intermediate representations beyond vector systems;
-- semantic test-suite sparsification across heterogeneous retrievers;
+- semantic test adequacy across heterogeneous retrievers;
 - release attestations / software-supply-chain-style manifests for ML retrieval behavior;
 - patents on embedding compatibility certification, semantic regression testing and selective semantic deployment.
 
