@@ -1,0 +1,86 @@
+{
+  "format": "semantic-abi-oracle-tck",
+  "format_version": 1,
+  "description": "Language-neutral canonical fixture for Semantic ABI Oracle Protocol v1. Implementations should reproduce the expected contract, plan, manifest, snapshot and audit digests using canonical UTF-8 JSON with sorted keys and separators ',' ':'.",
+  "contract": {
+    "format": "semantic-abi-contract",
+    "format_version": 1,
+    "name": "tck-directional",
+    "version": "1",
+    "parent_digest": null,
+    "metadata": {},
+    "clauses": [
+      {
+        "kind": "neighbor",
+        "anchor": "q:1",
+        "expected": ["d:a"],
+        "min_recall": 1.0,
+        "candidate_k": 2,
+        "weight": 1.0,
+        "hard": true,
+        "source": "behavior"
+      },
+      {
+        "kind": "triplet",
+        "anchor": "q:1",
+        "positive": "d:a",
+        "negative": "d:b",
+        "margin": 0.5,
+        "weight": 1.0,
+        "hard": true,
+        "source": "contract"
+      },
+      {
+        "kind": "triplet",
+        "anchor": "q:1",
+        "positive": "d:a",
+        "negative": "d:b",
+        "margin": 1.0,
+        "weight": 1.0,
+        "hard": false,
+        "source": "contract"
+      }
+    ]
+  },
+  "oracle_manifest": {
+    "protocol": "semantic-abi-oracle",
+    "protocol_version": 1,
+    "implementation_id": "tck-directional",
+    "implementation_kind": "tck",
+    "score_semantics": "directional-fixture",
+    "score_directionality": "asymmetric",
+    "deterministic": true,
+    "capabilities": ["contains_many", "score_many", "neighbors_many"],
+    "metadata": {
+      "state_digest": "tck-state-v1",
+      "score_anchor_prefixes": ["q:"],
+      "score_candidate_prefixes": ["d:"],
+      "neighbor_anchor_prefixes": ["q:"]
+    }
+  },
+  "wire_responses": {
+    "contains": {"d:a": true, "d:b": true, "q:1": true},
+    "scores": [
+      {"anchor": "q:1", "candidate": "d:a", "score": 2.5},
+      {"anchor": "q:1", "candidate": "d:b", "score": 0.5}
+    ],
+    "neighborhoods": [
+      {"anchor": "q:1", "k": 2, "neighbors": ["d:a", "d:b"]}
+    ]
+  },
+  "expected": {
+    "contract_digest": "4e200bb9e53c713aa363a2583ca2dc9a5db71655a8322d1cd23fc1fbfc480aed",
+    "plan_digest": "a6bc8345577e8121e4541325a2dc2a84acedf42642cefa4b29aeddb013f7299a",
+    "oracle_manifest_digest": "03a0982cac4310d9256bd775aa5317818cbde00d7b04b39b3ddf1230771946f4",
+    "snapshot_digest": "2374bc878adee03a53a8a88a8e8d872b741d6d59583395668d0dd48b8244bca3",
+    "protocol_audit_digest": "559da2f86432f09b71a93f0a3bc8f69f26b57de075d8c21907a44930813b46d6",
+    "audit_score": 1.0,
+    "hard_pass": true,
+    "evaluated_clauses": 3,
+    "missing_clauses": 0,
+    "violated_clauses": 0,
+    "transport_round_trips": 3,
+    "deduplicated_score_pairs": 2,
+    "deduplicated_neighbor_requests": 1
+  }
+}
