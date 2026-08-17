@@ -7,13 +7,18 @@ on:
       - agent/semantic-manifold-atlas
     paths:
       - benchmarks/real_encoder_scifact_benchmark.py
+      - benchmarks/real_encoder_risk_calibration_benchmark.py
       - benchmarks/evidence_gated_transition_npz.py
+      - src/semantic_atlas/risk_control.py
+      - src/semantic_atlas/risk_exact.py
+      - src/semantic_atlas/support.py
+      - src/semantic_atlas/contracts.py
       - .github/workflows/real-encoder.yml
 
 jobs:
   scifact:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -42,6 +47,18 @@ jobs:
           --delta 0.10
           --output artifacts/real_encoder_report.json
           --npz artifacts/scifact_pair.npz
+      - name: Compare semantic risk certification policies
+        env:
+          HF_HUB_DISABLE_TELEMETRY: "1"
+          TOKENIZERS_PARALLELISM: "false"
+        run: >-
+          python benchmarks/real_encoder_risk_calibration_benchmark.py
+          --train-queries 500
+          --test-queries 200
+          --max-docs 1800
+          --delta 0.10
+          --selection-risk-fraction 0.75
+          --output artifacts/risk_calibration_comparison.json
       - name: Validate global-vs-local complexity selection
         run: >-
           python benchmarks/evidence_gated_transition_npz.py
