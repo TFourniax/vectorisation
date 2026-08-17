@@ -132,6 +132,19 @@ This negative result matters for novelty discipline: future work should not rena
 
 Mutation/metamorphic testing also predates this project in software and ML systems. Semantic mutation testing is used here as an **adequacy instrument**: deliberately corrupt a representation and ask whether the contract detects and localizes the damage. The contribution, if any, must be in how mutation adequacy informs contract acquisition and release control—not the existence of mutation testing.
 
+## AI attestation and pre-deployment certificates
+
+The generic idea of binding evidence to an AI release is also **not** new.
+
+Relevant 2026 work includes:
+
+- Tan, Singer and Anagnostopoulos, *Attesting LLM Pipelines: Enforcing Verifiable Training and Release Claims* — proposes an attestation-aware promotion gate that cryptographically binds lineage/security claims to LLM pipeline artifacts and verifies evidence before promotion into trusted environments;
+- Tuan and Sanyal, *Toward Pre-Deployment Assurance for Enterprise AI Agents: Ontology-Grounded Simulation and Trust Certification* — proposes an operational envelope, generated verification scenarios and a machine-verifiable Trust Certificate with graduated deployment verdicts.
+
+These works are adjacent enough that `SemanticReleaseCertificate` must **not** claim novelty for AI release manifests, cryptographic evidence binding, promotion gates or machine-verifiable certificates in general.
+
+The narrower open systems question here is different: can a release attestation bind an implementation to a **portable retrieval-behavior contract**, with exact contract identity, adequacy evidence, support-aware/selective semantic risk, fallback semantics and repair/re-certification history? That integrated retrieval-specific role remains a hypothesis, not a novelty conclusion.
+
 ## What remains potentially differentiated
 
 The strongest current integrated systems hypothesis is:
@@ -158,7 +171,7 @@ Before strong publication/IP claims, continue targeted searches for:
 - region-wise/selective rollout driven by semantic invariants;
 - coordinate-free retrieval intermediate representations beyond vector systems;
 - semantic test adequacy across heterogeneous retrievers;
-- release attestations / software-supply-chain-style manifests for ML retrieval behavior;
+- retrieval-specific semantic release attestations and behavior certificates;
 - patents on embedding compatibility certification, semantic regression testing and selective semantic deployment.
 
 ## Kill criterion
