@@ -34,6 +34,7 @@ from .risk_control import (
     bernoulli_kl_upper_bound,
     calibrate_semantic_risk,
 )
+from .support import ContractCoverage, LocalSemanticRisk, contract_coverage, estimate_local_semantic_risk
 from .transition_io import load_transition, save_transition
 
 __all__ = [
@@ -77,6 +78,10 @@ __all__ = [
     "CertifiedSemanticABIGate",
     "bernoulli_kl_upper_bound",
     "calibrate_semantic_risk",
+    "ContractCoverage",
+    "LocalSemanticRisk",
+    "contract_coverage",
+    "estimate_local_semantic_risk",
     "ChangeAssessment",
     "AssessmentDelta",
     "SemanticChangeManager",
