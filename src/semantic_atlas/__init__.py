@@ -48,6 +48,7 @@ from .risk_control import (
     bernoulli_kl_upper_bound,
     calibrate_semantic_risk,
 )
+from .risk_exact import calibrate_semantic_risk_preregistered, exact_binomial_upper_bound
 from .risk_slices import SliceRiskPortfolio, calibrate_semantic_risk_by_slice
 from .semantic_diff import ContractQuestion, ObjectSemanticDiff, RepresentationDiff, propose_contract_questions, semantic_diff
 from .support import ContractCoverage, LocalSemanticRisk, contract_coverage, estimate_local_semantic_risk
@@ -112,6 +113,8 @@ __all__ = [
     "CertifiedSemanticABIGate",
     "bernoulli_kl_upper_bound",
     "calibrate_semantic_risk",
+    "exact_binomial_upper_bound",
+    "calibrate_semantic_risk_preregistered",
     "SliceRiskPortfolio",
     "calibrate_semantic_risk_by_slice",
     "ContractCoverage",
