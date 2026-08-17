@@ -1,0 +1,104 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-08-17",
+  "policy": "Promoted evidence is valid only while every listed source Git blob matches the current branch. Workflow artifact digests bind the recorded result bundle; source freshness is enforced offline by tools/check_evidence_freshness.py.",
+  "evidence": {
+    "real-neural-scifact-v2": {
+      "status": "promoted",
+      "workflow": "real-encoder-benchmark",
+      "workflow_run_id": 32026355440,
+      "workflow_head_sha": "ac361957a4ee7e085cef0de09921584cc9db9b29",
+      "artifact_name": "real-encoder-scifact",
+      "artifact_sha256": "sha256:4e08d4af4c01c0ed1de9b0dba224c446d7df45b7e0a5711dee14ef04bf1048f5",
+      "claims": [
+        "SciFact MiniLM/BGE direct retrieval",
+        "650-clause Semantic ABI audit",
+        "support-aware held-out risk discrimination",
+        "conservative and preregistered exact risk certification",
+        "same-digest BGE dense versus BM25 sparse portability",
+        "held-out evidence-gated global-versus-local transition selection"
+      ],
+      "source_blobs": {
+        "benchmarks/real_encoder_scifact_benchmark.py": "6443c967143f3650873f80ef43bbd4c685b69c85",
+        "benchmarks/real_encoder_risk_calibration_benchmark.py": "c2a5ffb2077faf47654824b797ed95597631e3cd",
+        "benchmarks/semantic_abi_sparse_scifact_benchmark.py": "09798e01ed900fd0355864d485ccea4aa485d13d",
+        "benchmarks/evidence_gated_transition_npz.py": "d42509225538fd3066e73a927c2c2031d3752681",
+        "src/semantic_atlas/contracts.py": "10613bf566dd3a27a61c78361f98ef41f37b958a",
+        "src/semantic_atlas/oracle.py": "0608d587f2a94d45d8541088cd2dfd6e4dc58553",
+        "src/semantic_atlas/risk_control.py": "c76e1e7ecc2357f2364daa6481390472d965b8ec",
+        "src/semantic_atlas/risk_exact.py": "db66827ce1e8f37f79ec235255f6c56b8f0ed17d",
+        "src/semantic_atlas/support.py": "1d7cf7e9f1e323d36704130a20ad418106e0ce53",
+        "src/semantic_atlas/alignment.py": "710dc532bbe5dda2f812ceae79e6a5d367933d43",
+        "src/semantic_atlas/transition_policy.py": "5cc17167f0b6a81a64e47f2e9591b56a584d8fc7",
+        "src/semantic_atlas/semantic_diff.py": "09f132a37f3159137eed5969ca99d44d60f9685a",
+        "src/semantic_atlas/release.py": "44e933b38f29cae175df41271f94ac3c23aee97d"
+      }
+    },
+    "real-data-mechanisms-v3": {
+      "status": "promoted",
+      "workflow": "real-data-mechanisms",
+      "workflow_run_id": 32026557641,
+      "workflow_head_sha": "e0b339f056d7d3854d5ac7af24da5ceb0a268c9c",
+      "artifact_name": "real-data-mechanism-evidence",
+      "artifact_sha256": "sha256:e1c56b67402a85f404fa3422ec89a45fe674191d39e5117618579c3e95a719ae",
+      "claims": [
+        "Digits pixels/HOG coordinate mechanism",
+        "application-semantics versus legacy-behavior separation",
+        "Semantic Diff enrichment",
+        "semantic mutation adequacy",
+        "negative fixed-witness and diagnostic-panel results",
+        "1,500-clause Progressive Semantic Audit decision agreement and early-stop cost"
+      ],
+      "source_blobs": {
+        "benchmarks/digits_coordinate_benchmark.py": "b82159e1b264209a621db60adb14d7f66d30a0e6",
+        "benchmarks/semantic_abi_digits_benchmark.py": "1d63403da4f3af294f9b7fc7d1b41ccbdfaca331",
+        "benchmarks/semantic_diff_digits_benchmark.py": "c43351b0f7baaef0be3aedacadfc7a944d232a44",
+        "benchmarks/semantic_mutation_digits_benchmark.py": "24c9567e57862e050ba788bf2f6b001ff0c77f10",
+        "benchmarks/semantic_witness_digits_benchmark.py": "5e36ff30a482f8858d23df5648c24455686151aa",
+        "benchmarks/semantic_diagnostic_digits_benchmark.py": "85637a533ab772d1133ce44be77583f67494640c",
+        "benchmarks/semantic_progressive_audit_digits_benchmark.py": "0b1f538dc798124a43416ed30e1a64df508f45a4",
+        "src/semantic_atlas/contracts.py": "10613bf566dd3a27a61c78361f98ef41f37b958a",
+        "src/semantic_atlas/oracle.py": "0608d587f2a94d45d8541088cd2dfd6e4dc58553",
+        "src/semantic_atlas/geometry.py": "bc0ef27acc6604cffcf8d4cfa8deb2f82f1fd4d3",
+        "src/semantic_atlas/mutation.py": "707007a2d430925983056866ed92a7f55b28615f",
+        "src/semantic_atlas/repair.py": "59169de9f603e2e97c61ec808c8faa7798856988",
+        "src/semantic_atlas/semantic_diff.py": "09f132a37f3159137eed5969ca99d44d60f9685a",
+        "src/semantic_atlas/witness.py": "042937f48d29e73af399d3aad40ac6812fcfd522",
+        "src/semantic_atlas/diagnostic.py": "e07e64570a7f1aaac6d1137b44556737f26431cb",
+        "src/semantic_atlas/progressive_audit.py": "7353071b3c6e1faf7e3220b84a7e6f2ec03fcf0e"
+      }
+    },
+    "progressive-audit-scale-v1": {
+      "status": "promoted",
+      "workflow": "progressive-audit-scale",
+      "workflow_run_id": 32028072287,
+      "workflow_head_sha": "5a9062b2a71fd7da6f36674d09f4815dee74471b",
+      "artifact_name": "progressive-audit-scale-evidence",
+      "artifact_sha256": "sha256:00b5322204ec21cc98412fd152a3ee3b7e989cf8c37fe2e7b69fc15d1e4875a4",
+      "claims": [
+        "Progressive Semantic Audit exact-decision agreement on procedural 10k/100k/250k contracts",
+        "early decision in 9/10 scale cases",
+        "far-from-boundary audit oracle cost can remain sub-percent as contract size grows"
+      ],
+      "source_blobs": {
+        "benchmarks/semantic_progressive_audit_scale_benchmark.py": "1aa489f5426c8f4e664c94f9e395995610e37184",
+        "src/semantic_atlas/progressive_audit.py": "7353071b3c6e1faf7e3220b84a7e6f2ec03fcf0e",
+        "src/semantic_atlas/oracle.py": "0608d587f2a94d45d8541088cd2dfd6e4dc58553",
+        "src/semantic_atlas/risk_exact.py": "db66827ce1e8f37f79ec235255f6c56b8f0ed17d",
+        "src/semantic_atlas/contracts.py": "10613bf566dd3a27a61c78361f98ef41f37b958a"
+      }
+    },
+    "multidataset-cross-paradigm-v1": {
+      "status": "pending",
+      "workflow": "multidataset-semantic-abi",
+      "workflow_run_id": 32027885908,
+      "note": "Awaiting autonomous multi-dataset dense/sparse/hybrid falsification result before any claim is promoted."
+    },
+    "neural-repair-economics-v1": {
+      "status": "pending",
+      "workflow": "semantic-repair-neural",
+      "workflow_run_id": 32028491625,
+      "note": "Awaiting SciFact/BGE controlled re-embedding economics result before any repair-economics claim is promoted."
+    }
+  }
+}
