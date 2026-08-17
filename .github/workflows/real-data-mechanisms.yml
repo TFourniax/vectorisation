@@ -12,8 +12,12 @@ on:
       - benchmarks/semantic_mutation_digits_benchmark.py
       - benchmarks/semantic_witness_digits_benchmark.py
       - benchmarks/semantic_diagnostic_digits_benchmark.py
+      - benchmarks/semantic_progressive_audit_digits_benchmark.py
       - src/semantic_atlas/witness.py
       - src/semantic_atlas/diagnostic.py
+      - src/semantic_atlas/progressive_audit.py
+      - src/semantic_atlas/oracle.py
+      - src/semantic_atlas/risk_exact.py
       - src/semantic_atlas/mutation.py
       - src/semantic_atlas/contracts.py
       - .github/workflows/real-data-mechanisms.yml
@@ -21,7 +25,7 @@ on:
 jobs:
   digits:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -42,6 +46,8 @@ jobs:
         run: python benchmarks/semantic_witness_digits_benchmark.py | tee digits-semantic-witness.json
       - name: Semantic Diagnostic Panel held-out benchmark
         run: python benchmarks/semantic_diagnostic_digits_benchmark.py | tee digits-semantic-diagnostic.json
+      - name: Progressive Semantic Audit cost benchmark
+        run: python benchmarks/semantic_progressive_audit_digits_benchmark.py | tee digits-progressive-audit.json
       - uses: actions/upload-artifact@v4
         with:
           name: real-data-mechanism-evidence
@@ -52,4 +58,5 @@ jobs:
             digits-semantic-mutation.json
             digits-semantic-witness.json
             digits-semantic-diagnostic.json
+            digits-progressive-audit.json
           if-no-files-found: error
