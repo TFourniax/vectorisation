@@ -2,6 +2,7 @@ import numpy as np
 
 from semantic_atlas.contracts import SemanticContract, TripletClause
 from semantic_atlas.lifecycle import SemanticChangeManager, compare_assessments
+from semantic_atlas.oracle import CallbackSemanticOracle
 from semantic_atlas.risk_control import CalibrationEvent
 
 
@@ -23,37 +24,12 @@ def calibration_events(n=400, high_loss=False):
 
 
 def test_change_manager_certifies_good_candidate_and_blocks_hard_failure():
-    contract = SemanticContract("demo", "1").add(
-        TripletClause("a", "b", "c", hard=True)
-    )
-    good = {
-        "a": unit([1.0, 0.0]),
-        "b": unit([0.9, 0.1]),
-        "c": unit([-1.0, 0.0]),
-    }
-    bad = {
-        "a": unit([1.0, 0.0]),
-        "b": unit([-1.0, 0.0]),
-        "c": unit([0.9, 0.1]),
-    }
+    contract = SemanticContract("demo", "1").add(TripletClause("a", "b", "c", hard=True))
+    good = {"a": unit([1.0, 0.0]), "b": unit([0.9, 0.1]), "c": unit([-1.0, 0.0])}
+    bad = {"a": unit([1.0, 0.0]), "b": unit([-1.0, 0.0]), "c": unit([0.9, 0.1])}
     manager = SemanticChangeManager(contract, min_global_score=0.5, target_risk=0.25, delta=0.10)
-    good_assessment = manager.assess(
-        "good",
-        good,
-        calibration_events(),
-        min_selection=40,
-        min_certification=50,
-        threshold_candidates=8,
-    )
-    bad_assessment = manager.assess(
-        "bad",
-        bad,
-        calibration_events(),
-        repair_budget=2.0,
-        min_selection=40,
-        min_certification=50,
-        threshold_candidates=8,
-    )
+    good_assessment = manager.assess("good", good, calibration_events(), min_selection=40, min_certification=50, threshold_candidates=8)
+    bad_assessment = manager.assess("bad", bad, calibration_events(), repair_budget=2.0, min_selection=40, min_certification=50, threshold_candidates=8)
 
     assert good_assessment.status == "certified"
     assert good_assessment.certificate.certified
@@ -62,10 +38,37 @@ def test_change_manager_certifies_good_candidate_and_blocks_hard_failure():
     assert bad_assessment.repair_plan is not None
 
 
-def test_assessment_delta_reports_semantic_improvement():
-    contract = SemanticContract("demo", "1").add(
-        TripletClause("a", "b", "c", hard=False)
+def test_change_manager_runs_same_lifecycle_over_non_vector_oracle():
+    contract = SemanticContract("demo", "1").add(TripletClause("a", "b", "c", hard=True))
+    values = {("a", "b"): 0.9, ("a", "c"): 0.1, ("b", "c"): 0.2}
+
+    def similarity(left, right):
+        if left == right:
+            return 1.0
+        return values.get((left, right), values[(right, left)])
+
+    neighbors = {"a": ("b", "c"), "b": ("a", "c"), "c": ("b", "a")}
+    oracle = CallbackSemanticOracle(
+        object_ids=frozenset(neighbors),
+        similarity_fn=similarity,
+        neighbors_fn=lambda anchor, k: neighbors[anchor][:k],
+        implementation="graph-ranker",
     )
+    manager = SemanticChangeManager(contract, min_global_score=0.5, target_risk=0.25, delta=0.10)
+    assessment = manager.assess_oracle(
+        oracle,
+        calibration_events(),
+        min_selection=40,
+        min_certification=50,
+        threshold_candidates=8,
+    )
+    assert assessment.implementation == "graph-ranker"
+    assert assessment.report.score == 1.0
+    assert assessment.status == "certified"
+
+
+def test_assessment_delta_reports_semantic_improvement():
+    contract = SemanticContract("demo", "1").add(TripletClause("a", "b", "c", hard=False))
     broken = {"a": unit([1, 0]), "b": unit([-1, 0]), "c": unit([0.9, 0.1])}
     repaired = {"a": unit([1, 0]), "b": unit([0.9, 0.1]), "c": unit([-1, 0])}
     manager = SemanticChangeManager(contract, min_global_score=0.0, target_risk=0.25, delta=0.10)
