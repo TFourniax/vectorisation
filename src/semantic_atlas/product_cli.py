@@ -16,13 +16,13 @@ from . import cli as legacy_cli
 from .acquisition import AcquisitionPolicy, load_evidence_jsonl
 from .attestation_v1 import SemanticProtocolAttestation, make_protocol_attestation
 from .certification_io import (
+    BoundRiskCertificate,
     assess_adequacy_spec,
     calibrate_risk_from_jsonl,
+    calibration_events_digest,
     load_adequacy_report,
-    load_risk_certificate,
-    risk_certificate_digest,
+    load_calibration_events_jsonl,
     save_adequacy_report,
-    save_risk_certificate,
 )
 from .change_control import ReleasePolicy, compare_protocol_audits
 from .conformance import check_oracle_conformance
@@ -239,6 +239,8 @@ def _assess_adequacy(args: argparse.Namespace) -> int:
 
 
 def _calibrate_risk(args: argparse.Namespace) -> int:
+    contract = SemanticContract.load(args.contract)
+    events = load_calibration_events_jsonl(args.events)
     certificate = calibrate_risk_from_jsonl(
         args.events,
         target_risk=args.target_risk,
@@ -249,24 +251,30 @@ def _calibrate_risk(args: argparse.Namespace) -> int:
         min_certification=args.min_certification,
         seed=args.seed,
     )
-    save_risk_certificate(certificate, args.output)
+    oracle = oracle_from_config(args.oracle)
+    try:
+        artifact = BoundRiskCertificate(
+            certificate=certificate,
+            contract_digest=contract.digest,
+            oracle_manifest_digest=oracle.manifest.digest,
+            calibration_evidence_digest=calibration_events_digest(events),
+        )
+        artifact.save(args.output)
+    finally:
+        _close_oracle(oracle)
     if not args.quiet:
         _write_json(
-            {"certificate": {**certificate.__dict__} if hasattr(certificate, "__dict__") else {
-                "target_risk": certificate.target_risk,
-                "delta": certificate.delta,
-                "threshold": certificate.threshold,
-                "empirical_risk": certificate.empirical_risk,
-                "upper_risk_bound": certificate.upper_risk_bound,
-                "accepted_calibration": certificate.accepted_calibration,
-                "certification_size": certificate.certification_size,
-                "total_events": certificate.total_events,
-                "estimated_coverage": certificate.estimated_coverage,
-                "candidate_count": certificate.candidate_count,
+            {
+                "artifact_digest": artifact.digest,
+                "contract_digest": artifact.contract_digest,
+                "oracle_manifest_digest": artifact.oracle_manifest_digest,
+                "calibration_evidence_digest": artifact.calibration_evidence_digest,
                 "certified": certificate.certified,
-                "method": certificate.method,
+                "target_risk": certificate.target_risk,
+                "upper_risk_bound": certificate.upper_risk_bound,
+                "estimated_coverage": certificate.estimated_coverage,
                 "reason": certificate.reason,
-            }, "certificate_digest": risk_certificate_digest(certificate)},
+            },
             None,
         )
     return 0 if certificate.certified else 8
@@ -295,9 +303,14 @@ def _contract_score_pairs(contract: SemanticContract) -> tuple[ScorePair, ...]:
 def _attest(args: argparse.Namespace) -> int:
     contract = SemanticContract.load(args.contract)
     adequacy = load_adequacy_report(args.adequacy, contract_digest=contract.digest)
-    risk = load_risk_certificate(args.risk_certificate)
     oracle = oracle_from_config(args.oracle)
     try:
+        risk_artifact = BoundRiskCertificate.load(
+            args.risk_certificate,
+            contract_digest=contract.digest,
+            oracle_manifest_digest=oracle.manifest.digest,
+        )
+        risk = risk_artifact.certificate
         audit = audit_contract_v1(contract, oracle)
         anchors = _contract_anchors(contract)
         if not anchors:
@@ -319,10 +332,13 @@ def _attest(args: argparse.Namespace) -> int:
             audit,
             conformance,
             adequacy=adequacy,
-            risk_certificate_digest=risk_certificate_digest(risk),
+            risk_certificate_digest=risk_artifact.digest,
             risk_certified=risk.certified,
             status="certified" if certifiable else "blocked",
-            metadata={"created_by": "semantic-abi attest"},
+            metadata={
+                "created_by": "semantic-abi attest",
+                "risk_calibration_evidence_digest": risk_artifact.calibration_evidence_digest,
+            },
         )
         attestation.save(args.output)
     finally:
@@ -397,8 +413,10 @@ def build_product_parser() -> argparse.ArgumentParser:
     adequacy.add_argument("--quiet", action="store_true")
     adequacy.set_defaults(func=_assess_adequacy)
 
-    risk = sub.add_parser("calibrate-risk", help="calibrate a held-out semantic rollout risk certificate")
+    risk = sub.add_parser("calibrate-risk", help="calibrate held-out risk and bind the certificate to one candidate manifest")
     risk.add_argument("events")
+    risk.add_argument("--contract", required=True)
+    risk.add_argument("--oracle", required=True, help="candidate oracle JSON config")
     risk.add_argument("--output", required=True)
     risk.add_argument("--target-risk", type=float, default=0.10)
     risk.add_argument("--delta", type=float, default=0.05)
@@ -410,7 +428,7 @@ def build_product_parser() -> argparse.ArgumentParser:
     risk.add_argument("--quiet", action="store_true")
     risk.set_defaults(func=_calibrate_risk)
 
-    attest = sub.add_parser("attest", help="create a candidate attestation from audit, conformance, adequacy and risk evidence")
+    attest = sub.add_parser("attest", help="create a candidate attestation from audit, conformance, adequacy and bound risk evidence")
     attest.add_argument("contract")
     attest.add_argument("--oracle", required=True)
     attest.add_argument("--adequacy", required=True)
