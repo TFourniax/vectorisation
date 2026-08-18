@@ -42,10 +42,14 @@ def _vector_text(value: Any) -> str:
 class PgVectorOracleV1:
     """Semantic ABI adapter over a DB-API compatible PostgreSQL connection.
 
-    Stable external anchors are materialized through ``query_catalog``.  A logical ID
+    Stable external anchors are materialized through ``query_catalog``. A logical ID
     absent from the catalog is interpreted as a row ID and its vector is loaded from the
     configured table. SQL identifiers are restricted to simple identifiers; all data
     values are bound as parameters.
+
+    ``deterministic`` is deliberately opt-in. Exact scans over an immutable snapshot can
+    reasonably declare it true, but ANN indexes, mutable tables or changing planner
+    settings must not inherit a stronger guarantee by default.
     """
 
     def __init__(
@@ -58,7 +62,7 @@ class PgVectorOracleV1:
         query_catalog: Mapping[str, Any] | None = None,
         metric: str = "cosine",
         implementation_id: str | None = None,
-        deterministic: bool = True,
+        deterministic: bool = False,
         state_digest: str | None = None,
     ) -> None:
         metric = str(metric)
@@ -101,7 +105,7 @@ class PgVectorOracleV1:
         query_catalog: Mapping[str, Any] | None = None,
         metric: str = "cosine",
         implementation_id: str | None = None,
-        deterministic: bool = True,
+        deterministic: bool = False,
         state_digest: str | None = None,
         connect_timeout: int = 10,
     ) -> "PgVectorOracleV1":
