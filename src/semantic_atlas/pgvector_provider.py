@@ -209,8 +209,10 @@ class PgVectorOracleV1:
                 where = f"WHERE {self.id_column}::text <> %s"
                 params.append(str(req.anchor))
             params.append(int(req.k))
+            # Selecting the distance gives the vector placeholder a stable first
+            # parameter position even when a row-anchor exclusion adds a WHERE value.
             rows = self._fetchall(
-                f"SELECT {self.id_column}::text FROM {self.table} {where} ORDER BY {distance} ASC LIMIT %s",
+                f"SELECT {self.id_column}::text, {distance} AS distance FROM {self.table} {where} ORDER BY distance ASC LIMIT %s",
                 tuple(params),
             )
             output[req] = tuple(str(row[0]) for row in rows[: req.k])
