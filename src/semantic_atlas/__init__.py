@@ -1,5 +1,20 @@
 """Semantic Manifold Atlas / Semantic ABI research package."""
 
+from .acquisition import (
+    AcquisitionPolicy,
+    ClauseCandidate,
+    ContractAcquisitionReport,
+    ContractAcquisitionResult,
+    PreferenceEvidence,
+    RelevantSetEvidence,
+    ReviewItem,
+    evidence_digest,
+    evidence_from_payload,
+    evidence_from_trace,
+    forge_contract,
+    load_evidence_jsonl,
+    save_review_queue,
+)
 from .adequacy import (
     AdequacyCheck,
     ContractAdequacyEvidence,
@@ -85,6 +100,19 @@ from .transition_io import load_transition, save_transition
 from .transition_policy import EvidenceGatedTransition, TransitionValidation
 
 __all__ = [
+    "AcquisitionPolicy",
+    "PreferenceEvidence",
+    "RelevantSetEvidence",
+    "ClauseCandidate",
+    "ReviewItem",
+    "ContractAcquisitionReport",
+    "ContractAcquisitionResult",
+    "evidence_digest",
+    "evidence_from_payload",
+    "evidence_from_trace",
+    "forge_contract",
+    "load_evidence_jsonl",
+    "save_review_queue",
     "AdequacyCheck",
     "ContractAdequacyEvidence",
     "ContractAdequacyReport",
