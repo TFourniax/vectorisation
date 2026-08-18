@@ -2,11 +2,11 @@ from __future__ import annotations
 
 """Portable I/O for adequacy and risk evidence used by production attestations."""
 
-from dataclasses import asdict
+from dataclasses import asdict, dataclass
 import hashlib
 import json
 from pathlib import Path
-from typing import Any, Mapping, Sequence
+from typing import Any, Mapping
 
 from .adequacy import (
     ContractAdequacyEvidence,
@@ -38,6 +38,11 @@ def risk_certificate_digest(certificate: RiskCertificate) -> str:
 
 
 def save_risk_certificate(certificate: RiskCertificate, path: str | Path) -> Path:
+    """Save the legacy/unbound certificate format for research compatibility.
+
+    Product release certification should use ``BoundRiskCertificate`` instead.
+    """
+
     target = Path(path)
     target.parent.mkdir(parents=True, exist_ok=True)
     payload = risk_certificate_to_dict(certificate)
@@ -87,6 +92,12 @@ def load_calibration_events_jsonl(path: str | Path) -> list[CalibrationEvent]:
     return events
 
 
+def calibration_events_digest(events: list[CalibrationEvent]) -> str:
+    """Order-sensitive digest of the exact normalized held-out calibration sequence."""
+
+    return _digest([asdict(event) for event in events])
+
+
 def calibrate_risk_from_jsonl(
     path: str | Path,
     *,
@@ -108,6 +119,83 @@ def calibrate_risk_from_jsonl(
         min_certification=min_certification,
         seed=seed,
     )
+
+
+@dataclass(slots=True, frozen=True)
+class BoundRiskCertificate:
+    """Risk certificate bound to one Semantic Contract and candidate manifest."""
+
+    certificate: RiskCertificate
+    contract_digest: str
+    oracle_manifest_digest: str
+    calibration_evidence_digest: str
+
+    def __post_init__(self) -> None:
+        for name in ("contract_digest", "oracle_manifest_digest", "calibration_evidence_digest"):
+            value = str(getattr(self, name))
+            if not value:
+                raise ValueError(f"{name} must be non-empty")
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "format": "semantic-abi-bound-risk-certificate",
+            "format_version": 1,
+            "binding": {
+                "contract_digest": self.contract_digest,
+                "oracle_manifest_digest": self.oracle_manifest_digest,
+                "calibration_evidence_digest": self.calibration_evidence_digest,
+            },
+            "certificate": risk_certificate_to_dict(self.certificate),
+        }
+
+    @property
+    def digest(self) -> str:
+        return _digest(self.to_dict())
+
+    def save(self, path: str | Path) -> Path:
+        target = Path(path)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        envelope = {"artifact": self.to_dict(), "artifact_digest": self.digest}
+        target.write_text(json.dumps(envelope, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        return target
+
+    @classmethod
+    def load(
+        cls,
+        path: str | Path,
+        *,
+        contract_digest: str | None = None,
+        oracle_manifest_digest: str | None = None,
+    ) -> "BoundRiskCertificate":
+        envelope = json.loads(Path(path).read_text(encoding="utf-8"))
+        if not isinstance(envelope, Mapping):
+            raise ValueError("bound risk certificate file must be a JSON object")
+        raw = envelope.get("artifact", envelope)
+        if not isinstance(raw, Mapping):
+            raise ValueError("bound risk artifact must be a JSON object")
+        if raw.get("format") != "semantic-abi-bound-risk-certificate" or int(raw.get("format_version", 0)) != 1:
+            raise ValueError("production attestation requires a bound Semantic ABI risk certificate")
+        binding = raw.get("binding", {})
+        cert_raw = raw.get("certificate", {})
+        if not isinstance(binding, Mapping) or not isinstance(cert_raw, Mapping):
+            raise ValueError("bound risk artifact omitted binding or certificate")
+        cert_payload = dict(cert_raw)
+        if cert_payload.pop("format", None) != "semantic-abi-risk-certificate" or int(cert_payload.pop("format_version", 0)) != 1:
+            raise ValueError("unsupported embedded risk certificate")
+        artifact = cls(
+            certificate=RiskCertificate(**cert_payload),
+            contract_digest=str(binding.get("contract_digest", "")),
+            oracle_manifest_digest=str(binding.get("oracle_manifest_digest", "")),
+            calibration_evidence_digest=str(binding.get("calibration_evidence_digest", "")),
+        )
+        expected = envelope.get("artifact_digest")
+        if expected is not None and str(expected) != artifact.digest:
+            raise ValueError("bound risk certificate digest mismatch")
+        if contract_digest is not None and artifact.contract_digest != str(contract_digest):
+            raise ValueError("risk certificate belongs to a different Semantic Contract")
+        if oracle_manifest_digest is not None and artifact.oracle_manifest_digest != str(oracle_manifest_digest):
+            raise ValueError("risk certificate belongs to a different candidate oracle manifest")
+        return artifact
 
 
 def adequacy_report_to_dict(report: ContractAdequacyReport) -> dict[str, Any]:
