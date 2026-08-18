@@ -1,0 +1,80 @@
+name: product-integration
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: product-integration-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qdrant-live:
+    runs-on: ubuntu-latest
+    services:
+      qdrant:
+        image: qdrant/qdrant:v1.18.2
+        ports:
+          - 6333:6333
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install --upgrade pip
+      - run: pip install -e '.[dev]'
+      - name: Audit a real ephemeral Qdrant collection
+        run: python integration/qdrant_live.py
+
+  pgvector-live:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:0.8.6-pg17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install --upgrade pip
+      - run: pip install -e '.[dev,postgres]'
+      - name: Audit a real ephemeral pgvector table
+        run: python integration/pgvector_live.py
+
+  opensearch-live:
+    runs-on: ubuntu-latest
+    env:
+      OPENSEARCH_INITIAL_ADMIN_PASSWORD: "SemanticAbi-Integration-2026!"
+    services:
+      opensearch:
+        image: opensearchproject/opensearch:3.7.0
+        env:
+          discovery.type: single-node
+          OPENSEARCH_INITIAL_ADMIN_PASSWORD: "SemanticAbi-Integration-2026!"
+          OPENSEARCH_JAVA_OPTS: "-Xms512m -Xmx512m"
+        ports:
+          - 9200:9200
+          - 9600:9600
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install --upgrade pip
+      - run: pip install -e '.[dev]'
+      - name: Audit a real ephemeral OpenSearch index over authenticated TLS
+        run: python integration/opensearch_live.py

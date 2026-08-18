@@ -1,0 +1,113 @@
+name: Semantic ABI Release Gate
+description: Block a release when semantic change control or certified evidence fails.
+author: TFourniax
+
+inputs:
+  contract:
+    description: Path to the Semantic Contract JSON in the caller workspace.
+    required: true
+  baseline:
+    description: Path to the baseline provider configuration JSON.
+    required: true
+  candidate:
+    description: Path to the candidate provider configuration JSON.
+    required: true
+  attestation:
+    description: Path to the candidate Semantic Protocol Attestation JSON.
+    required: true
+  adequacy:
+    description: Path to the recomputable adequacy report JSON.
+    required: true
+  risk-certificate:
+    description: Path to the candidate-bound risk certificate JSON.
+    required: true
+  install-extras:
+    description: Optional Python package extras, for example postgres for pgvector.
+    required: false
+    default: ""
+  max-score-drop:
+    description: Maximum aggregate semantic score drop allowed by release policy.
+    required: false
+    default: "0"
+  allow-soft-regressions:
+    description: Maximum number of soft clause regressions allowed.
+    required: false
+    default: "0"
+  conformance-k:
+    description: Comma-separated k values used to recompute protocol conformance.
+    required: false
+    default: "1,3,5"
+  check-score-pairs:
+    description: Set to true to include contract triplet pairs in conformance rechecks.
+    required: false
+    default: "false"
+  report-json:
+    description: Path where the machine-readable production release report is written.
+    required: false
+    default: "semantic-abi-release.json"
+  report-markdown:
+    description: Path where the Markdown release report is written.
+    required: false
+    default: "semantic-abi-release.md"
+
+runs:
+  using: composite
+  steps:
+    - name: Install Semantic ABI engine
+      shell: bash
+      env:
+        SEMANTIC_ABI_ACTION_PATH: ${{ github.action_path }}
+        SEMANTIC_ABI_INSTALL_EXTRAS: ${{ inputs.install-extras }}
+      run: |
+        set -euo pipefail
+        python -m pip install --upgrade pip
+        if [[ -n "$SEMANTIC_ABI_INSTALL_EXTRAS" ]]; then
+          python -m pip install "$SEMANTIC_ABI_ACTION_PATH[$SEMANTIC_ABI_INSTALL_EXTRAS]"
+        else
+          python -m pip install "$SEMANTIC_ABI_ACTION_PATH"
+        fi
+
+    - name: Run strict Semantic ABI production gate
+      shell: bash
+      env:
+        SEMANTIC_ABI_CONTRACT: ${{ inputs.contract }}
+        SEMANTIC_ABI_BASELINE: ${{ inputs.baseline }}
+        SEMANTIC_ABI_CANDIDATE: ${{ inputs.candidate }}
+        SEMANTIC_ABI_ATTESTATION: ${{ inputs.attestation }}
+        SEMANTIC_ABI_ADEQUACY: ${{ inputs.adequacy }}
+        SEMANTIC_ABI_RISK: ${{ inputs.risk-certificate }}
+        SEMANTIC_ABI_MAX_SCORE_DROP: ${{ inputs.max-score-drop }}
+        SEMANTIC_ABI_ALLOW_SOFT: ${{ inputs.allow-soft-regressions }}
+        SEMANTIC_ABI_K: ${{ inputs.conformance-k }}
+        SEMANTIC_ABI_CHECK_SCORE_PAIRS: ${{ inputs.check-score-pairs }}
+        SEMANTIC_ABI_REPORT_JSON: ${{ inputs.report-json }}
+        SEMANTIC_ABI_REPORT_MD: ${{ inputs.report-markdown }}
+      run: |
+        set -euo pipefail
+        args=(
+          release "$SEMANTIC_ABI_CONTRACT"
+          --baseline "$SEMANTIC_ABI_BASELINE"
+          --candidate "$SEMANTIC_ABI_CANDIDATE"
+          --attestation "$SEMANTIC_ABI_ATTESTATION"
+          --adequacy "$SEMANTIC_ABI_ADEQUACY"
+          --risk-certificate "$SEMANTIC_ABI_RISK"
+          --max-score-drop "$SEMANTIC_ABI_MAX_SCORE_DROP"
+          --allow-soft-regressions "$SEMANTIC_ABI_ALLOW_SOFT"
+          --k "$SEMANTIC_ABI_K"
+          --output "$SEMANTIC_ABI_REPORT_JSON"
+          --markdown "$SEMANTIC_ABI_REPORT_MD"
+        )
+        if [[ "$SEMANTIC_ABI_CHECK_SCORE_PAIRS" == "true" ]]; then
+          args+=(--check-score-pairs)
+        fi
+        semantic-abi "${args[@]}"
+
+    - name: Publish release report to job summary
+      if: always()
+      shell: bash
+      env:
+        SEMANTIC_ABI_REPORT_MD: ${{ inputs.report-markdown }}
+      run: |
+        if [[ -f "$SEMANTIC_ABI_REPORT_MD" ]]; then
+          cat "$SEMANTIC_ABI_REPORT_MD" >> "$GITHUB_STEP_SUMMARY"
+        fi

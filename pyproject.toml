@@ -4,19 +4,20 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "semantic-manifold-atlas"
-version = "0.5.0"
-description = "Semantic ABI protocol and evidence-gated semantic change-control research engine"
+version = "0.6.0rc1"
+description = "Semantic ABI protocol and evidence-gated semantic change-control engine"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = ["numpy>=1.24"]
 authors = [{name = "TFourniax"}]
 
 [project.scripts]
-semantic-abi = "semantic_atlas.cli:main"
+semantic-abi = "semantic_atlas.product_cli:main"
 
 [project.optional-dependencies]
 dev = ["pytest>=8"]
 bench = ["scikit-learn>=1.4", "scikit-image>=0.22"]
+postgres = ["psycopg[binary]>=3.2"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
