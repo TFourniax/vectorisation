@@ -107,6 +107,7 @@ def oracle_from_config(path: str | Path):
             url,
             timeout=timeout,
             headers=_headers_from_spec(spec),
+            require_https=require_https,
         )
 
     if kind == "qdrant":
@@ -125,6 +126,7 @@ def oracle_from_config(path: str | Path):
             implementation_id=None if spec.get("implementation_id") is None else str(spec["implementation_id"]),
             deterministic=bool(spec.get("deterministic", False)),
             state_digest=None if spec.get("state_digest") is None else str(spec["state_digest"]),
+            score_directionality=str(spec.get("score_directionality", "unknown")),
         )
 
     if kind == "opensearch":
