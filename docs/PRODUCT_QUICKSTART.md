@@ -195,8 +195,8 @@ semantic-abi check contract-v2.json \
 
 Default release-diff policy is conservative:
 
-- zero newly failing hard clauses;
-- zero newly failing soft clauses;
+- zero newly failing or worsening hard clauses;
+- zero newly failing or worsening soft clauses;
 - zero newly missing clauses;
 - zero aggregate semantic score drop;
 - candidate must satisfy all hard clauses.
@@ -237,7 +237,7 @@ semantic-abi assess-adequacy contract-v2.json \
 
 Missing required evidence produces `insufficient_evidence` and a non-zero exit status.
 
-## 8. Calibrate a rollout-risk certificate
+## 8. Calibrate a candidate-bound rollout-risk certificate
 
 Each held-out calibration row contains a predeployment proxy risk and independently observed binary semantic loss:
 
@@ -246,14 +246,18 @@ Each held-out calibration row contains a predeployment proxy risk and independen
 {"proxy_risk":0.18,"observed_loss":1,"object_id":"case-002","group":"deletion"}
 ```
 
+The calibration artifact is bound to the exact Semantic Contract, candidate oracle manifest and normalized calibration-event sequence:
+
 ```bash
 semantic-abi calibrate-risk calibration.jsonl \
+  --contract contract-v2.json \
+  --oracle candidate.json \
   --target-risk 0.10 \
   --delta 0.05 \
   --output risk-certificate.json
 ```
 
-Failure to statistically certify the requested budget produces a valid **failed** certificate and a non-zero exit status. It is not silently converted into a pass.
+Failure to statistically certify the requested budget produces a valid **failed** bound certificate and a non-zero exit status. It is not silently converted into a pass, and a certificate created for another candidate manifest is rejected later.
 
 ## 9. Attest the candidate
 
@@ -266,13 +270,13 @@ semantic-abi attest contract-v2.json \
   --report candidate-attestation-summary.json
 ```
 
-`attest` executes the candidate again, checks Protocol-v1 conformance, recomputes the evidence bindings and emits `status=certified` only when:
+`attest` executes the candidate, checks Protocol-v1 conformance, verifies the contract/candidate binding of risk evidence and emits `status=certified` only when:
 
 - protocol conformance passes;
 - all hard clauses pass;
 - there are no missing clauses;
 - adequacy status is `adequate`;
-- the risk certificate is certified.
+- the candidate-bound risk certificate is certified.
 
 Otherwise the attestation is emitted as `blocked` and the command returns non-zero.
 
@@ -283,16 +287,21 @@ semantic-abi release contract-v2.json \
   --baseline prod.json \
   --candidate candidate.json \
   --attestation candidate-attestation.json \
+  --adequacy adequacy.json \
+  --risk-certificate risk-certificate.json \
   --output release.json \
   --markdown release.md
 ```
 
-A production release passes only when both conditions hold:
+A production release passes only when all of the following hold:
 
-1. the backend-independent semantic change policy passes; and
-2. the supplied certified attestation is bound to the **exact candidate contract, manifest, execution plan, observed snapshot and protocol audit** produced by the release check.
+1. the backend-independent semantic change policy passes;
+2. the attestation is bound to the exact candidate contract, manifest, execution plan, observed snapshot and protocol audit;
+3. conformance is re-executed at release time and its digest/status matches the attestation;
+4. adequacy is reloaded and recomputed from its evidence/requirements and matches the attestation;
+5. the risk artifact is rebound to the release candidate manifest and its digest/certification state matches the attestation.
 
-A stale attestation for a different index/model/provider state fails closed.
+A stale or manually reconstructed attestation therefore cannot replace the underlying certification artifacts. A future external KMS/PKI signature should add organizational authenticity on top of these local integrity checks.
 
 ## Exit codes
 
