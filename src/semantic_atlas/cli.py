@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 import sys
 
+from .acquisition import AcquisitionPolicy, forge_contract, load_evidence_jsonl, save_review_queue
 from .conformance import check_oracle_conformance
 from .contracts import SemanticContract
 from .protocol_v1 import audit_contract_v1, compile_contract
@@ -27,6 +28,36 @@ def _plan(args: argparse.Namespace) -> int:
     contract = SemanticContract.load(args.contract)
     plan = compile_contract(contract)
     _write({**plan.to_dict(), "plan_digest": plan.digest}, args.output)
+    return 0
+
+
+def _forge(args: argparse.Namespace) -> int:
+    evidence = load_evidence_jsonl(args.evidence)
+    parent_digest = SemanticContract.load(args.parent).digest if args.parent else None
+    policy = AcquisitionPolicy(
+        auto_promote_confidence=args.auto_promote_confidence,
+        review_confidence=args.review_confidence,
+        min_effective_support=args.min_effective_support,
+        hard_confidence=args.hard_confidence,
+        hard_min_criticality=args.hard_min_criticality,
+        opposition_ratio_review=args.opposition_ratio_review,
+        max_review_items=args.max_review_items,
+    )
+    result = forge_contract(
+        evidence,
+        name=args.name,
+        version=args.version,
+        parent_digest=parent_digest,
+        policy=policy,
+        estimated_seconds_per_review=args.seconds_per_review,
+    )
+    result.contract.save(args.output)
+    if args.report:
+        _write(result.report.to_dict(), args.report)
+    if args.review:
+        save_review_queue(result.review_queue, args.review)
+    if not args.quiet:
+        _write(result.report.to_dict(), None)
     return 0
 
 
@@ -60,6 +91,25 @@ def build_parser() -> argparse.ArgumentParser:
     plan.add_argument("contract")
     plan.add_argument("--output")
     plan.set_defaults(func=_plan)
+
+    forge = sub.add_parser("forge", help="infer a reviewable Semantic Contract from JSONL evidence")
+    forge.add_argument("evidence", help="JSONL preferences, relevant sets, policies and/or production traces")
+    forge.add_argument("--name", default="application-semantics")
+    forge.add_argument("--version", default="1")
+    forge.add_argument("--parent", help="optional parent contract whose digest is linked as lineage")
+    forge.add_argument("--output", required=True, help="path for the auto-promoted Semantic Contract")
+    forge.add_argument("--report", help="optional acquisition report JSON")
+    forge.add_argument("--review", help="optional JSONL review queue")
+    forge.add_argument("--auto-promote-confidence", type=float, default=0.85)
+    forge.add_argument("--review-confidence", type=float, default=0.60)
+    forge.add_argument("--min-effective-support", type=float, default=0.80)
+    forge.add_argument("--hard-confidence", type=float, default=0.98)
+    forge.add_argument("--hard-min-criticality", type=float, default=0.80)
+    forge.add_argument("--opposition-ratio-review", type=float, default=0.20)
+    forge.add_argument("--max-review-items", type=int, default=200)
+    forge.add_argument("--seconds-per-review", type=float, default=20.0)
+    forge.add_argument("--quiet", action="store_true")
+    forge.set_defaults(func=_forge)
 
     audit = sub.add_parser("remote-audit", help="audit a contract against a protocol-v1 HTTP oracle")
     audit.add_argument("url")
