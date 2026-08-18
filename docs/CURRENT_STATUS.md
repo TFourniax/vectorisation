@@ -130,16 +130,7 @@ These results are important because the project is explicitly trying to discover
 
 ## Competitive correction made on 2026-08-18
 
-Research found that a generic "AI release gate" would not be sufficiently differentiated. Adjacent public products/research now cover combinations of:
-
-- agent regression tests and CI gates;
-- behavioral contracts;
-- runtime contracts;
-- deployment certificates;
-- prompt/agent semantic versioning;
-- model routing;
-- whole-agent optimization;
-- proof-carrying agent governance.
+Research found that a generic "AI release gate" would not be sufficiently differentiated. Adjacent public products/research now cover combinations of agent regression tests, behavioral/runtime contracts, deployment certificates, semantic versioning, model routing, whole-agent optimization and proof-carrying governance.
 
 The project therefore narrows its novelty hypothesis to **evidence-bound semantic dependency resolution**: application-owned semantic slots, exact substitute certificates, explicit composition proof, and optimization only inside the certified dependency set.
 
@@ -147,32 +138,34 @@ This remains a hypothesis rather than proof of worldwide novelty.
 
 ## Validation status
 
-Performed during this branch's development:
+The current PR head has now passed the repository's complete standard CI workflow (**run 32119341095 / ci #391**):
 
-- isolated v0.6 change-control suite: **7 focused tests passed**;
-- isolated v0.7 linker core: **5 focused tests passed**;
-- additional repository tests were added for certificate bridging and JSON link I/O;
-- Draft PR #4 was opened so the repository's full pull-request CI matrix can validate the combined branch.
+- Python **3.10**: install + full `pytest` + `benchmarks/hubness_benchmark.py` — passed;
+- Python **3.12**: install + full `pytest` + benchmark — passed;
+- Python **3.13**: install + full `pytest` + benchmark — passed;
+- `evidence-freshness` — passed.
 
-Do not claim the full repository CI is green until GitHub reports it.
+Before the full workflow, isolated development checks had also passed 7 focused v0.6 change-control tests and 5 focused v0.7 linker tests.
+
+Green CI establishes repository compatibility for the tested matrix. It does **not** establish external-provider correctness, cryptographic certificate security, semantic adequacy in unseen domains, production scalability, or commercial viability.
 
 ## Highest-value next gates
 
-1. full PR CI green across existing Python/benchmark matrix;
-2. cryptographic certificate signing, verification and revocation;
-3. real model-provider and retrieval-provider adapters;
-4. empirical composition study: when can proof be reused vs when is joint recertification mandatory?;
-5. private compatibility registry and graph;
-6. scalable constraint resolver;
-7. automatic Contract Forge with human approval of normative requirements;
-8. real migration studies against conventional eval + router workflows;
-9. measure false admission, false block, certification cost and spend/migration savings;
-10. independent TCK implementation and professional prior-art/IP review.
+1. cryptographic certificate signing, verification and revocation;
+2. real model-provider and retrieval-provider adapters;
+3. empirical composition study: when can proof be reused vs when is joint recertification mandatory?;
+4. private compatibility registry and graph;
+5. scalable constraint resolver;
+6. automatic Contract Forge with human approval of normative requirements;
+7. real migration studies against conventional eval + router workflows;
+8. measure false admission, false block, certification cost and spend/migration savings;
+9. independent TCK implementation;
+10. professional prior-art/IP review.
 
 ## Key documents
 
 - [`../README.md`](../README.md) — current product/research overview;
 - [`SEMANTIC_CHANGE_CONTROL_PLANE.md`](SEMANTIC_CHANGE_CONTROL_PLANE.md) — v0.6 compatibility design;
 - [`SEMANTIC_LINKER.md`](SEMANTIC_LINKER.md) — v0.7 proof-carrying dependency resolver;
-- [`VENTURE_THESIS_CHANGE_CONTROL.md`](VENTURE_THESIS_CHANGE_CONTROL.md) — commercial thesis and kill criteria;
+- [`VENTURE_THESIS_SEMANTIC_DEPENDENCY_MANAGEMENT.md`](VENTURE_THESIS_SEMANTIC_DEPENDENCY_MANAGEMENT.md) — current commercial/scientific thesis and kill criteria;
 - [`SEMANTIC_ABI_PROTOCOL_V1.md`](SEMANTIC_ABI_PROTOCOL_V1.md) — retrieval protocol foundation.
