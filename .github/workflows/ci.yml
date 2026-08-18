@@ -27,6 +27,25 @@ jobs:
       - run: pytest
       - run: python benchmarks/hubness_benchmark.py
 
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install --upgrade pip build
+      - name: Build sdist and wheel
+        run: python -m build
+      - name: Install wheel outside source checkout
+        run: |
+          python -m venv /tmp/semantic-abi-wheel
+          /tmp/semantic-abi-wheel/bin/pip install dist/*.whl
+          cd /tmp
+          /tmp/semantic-abi-wheel/bin/python -c "import semantic_atlas; print(semantic_atlas.__file__)"
+          /tmp/semantic-abi-wheel/bin/semantic-abi --help
+
   evidence-freshness:
     runs-on: ubuntu-latest
     steps:
