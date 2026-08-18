@@ -9,7 +9,8 @@ from typing import Any, Mapping
 from urllib import parse as urllib_parse
 
 from .pgvector_provider import PgVectorOracleV1
-from .providers import OpenSearchOracleV1, QdrantOracleV1, load_query_catalog
+from .providers import OpenSearchOracleV1, load_query_catalog
+from .qdrant_provider import PortableQdrantOracleV1
 from .remote_v1 import RemoteSemanticOracleV1
 
 
@@ -55,14 +56,18 @@ def load_oracle_spec(path: str | Path) -> tuple[dict[str, Any], Path]:
     return dict(payload), target.parent
 
 
-def _catalog(spec: Mapping[str, Any], base_dir: Path) -> dict[str, Any]:
-    catalog_path = spec.get("query_catalog")
-    if not catalog_path:
+def _mapping_file(spec: Mapping[str, Any], key: str, base_dir: Path) -> dict[str, Any]:
+    value = spec.get(key)
+    if not value:
         return {}
-    target = Path(str(catalog_path))
+    target = Path(str(value))
     if not target.is_absolute():
         target = base_dir / target
     return load_query_catalog(target)
+
+
+def _catalog(spec: Mapping[str, Any], base_dir: Path) -> dict[str, Any]:
+    return _mapping_file(spec, "query_catalog", base_dir)
 
 
 def oracle_from_config(path: str | Path):
@@ -108,10 +113,11 @@ def oracle_from_config(path: str | Path):
         api_key = None
         if spec.get("api_key_env"):
             api_key = _required_env(str(spec["api_key_env"]))
-        return QdrantOracleV1.http(
+        return PortableQdrantOracleV1.http(
             url,
             collection=str(spec["collection"]),
             query_catalog=_catalog(spec, base_dir),
+            object_id_map=_mapping_file(spec, "object_id_map", base_dir),
             api_key=api_key,
             vector_name=None if spec.get("vector_name") is None else str(spec["vector_name"]),
             timeout=timeout,
