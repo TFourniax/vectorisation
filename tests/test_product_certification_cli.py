@@ -1,7 +1,9 @@
 import json
 
+import pytest
+
 from semantic_atlas.adequacy import ContractAdequacyEvidence, ContractAdequacyRequirements, assess_contract_adequacy
-from semantic_atlas.certification_io import save_adequacy_report, save_risk_certificate
+from semantic_atlas.certification_io import BoundRiskCertificate, save_adequacy_report
 from semantic_atlas.contracts import SemanticContract, TripletClause
 from semantic_atlas.product_cli import main
 from semantic_atlas.protocol_v1 import OracleManifest
@@ -67,7 +69,7 @@ def _adequacy(contract, tmp_path):
     return path
 
 
-def _risk(tmp_path, certified=True):
+def _risk(contract, tmp_path, *, certified=True, candidate_name="candidate"):
     certificate = RiskCertificate(
         target_risk=0.10,
         delta=0.05,
@@ -83,15 +85,21 @@ def _risk(tmp_path, certified=True):
         method="test",
         reason="fixture",
     )
-    path = tmp_path / "risk.json"
-    save_risk_certificate(certificate, path)
+    artifact = BoundRiskCertificate(
+        certificate=certificate,
+        contract_digest=contract.digest,
+        oracle_manifest_digest=FakeOracle(candidate_name).manifest.digest,
+        calibration_evidence_digest="heldout-calibration-fixture-digest",
+    )
+    path = tmp_path / f"risk-{candidate_name}.json"
+    artifact.save(path)
     return path
 
 
 def test_attest_then_release_forms_closed_certified_cli_chain(tmp_path, monkeypatch):
     contract, contract_path = _contract(tmp_path)
     adequacy = _adequacy(contract, tmp_path)
-    risk = _risk(tmp_path)
+    risk = _risk(contract, tmp_path)
     candidate_cfg = tmp_path / "candidate.json"
     baseline_cfg = tmp_path / "baseline.json"
     candidate_cfg.write_text("{}", encoding="utf-8")
@@ -151,7 +159,7 @@ def test_attest_then_release_forms_closed_certified_cli_chain(tmp_path, monkeypa
 def test_attest_refuses_to_certify_when_risk_certificate_failed(tmp_path, monkeypatch):
     contract, contract_path = _contract(tmp_path)
     adequacy = _adequacy(contract, tmp_path)
-    risk = _risk(tmp_path, certified=False)
+    risk = _risk(contract, tmp_path, certified=False)
     cfg = tmp_path / "candidate.json"
     cfg.write_text("{}", encoding="utf-8")
     attestation = tmp_path / "attestation.json"
@@ -177,6 +185,33 @@ def test_attest_refuses_to_certify_when_risk_certificate_failed(tmp_path, monkey
     envelope = json.loads(attestation.read_text(encoding="utf-8"))
     assert envelope["attestation"]["status"] == "blocked"
     assert envelope["attestation"]["risk_certified"] is False
+
+
+def test_attest_rejects_risk_certificate_from_another_candidate_manifest(tmp_path, monkeypatch):
+    contract, contract_path = _contract(tmp_path)
+    adequacy = _adequacy(contract, tmp_path)
+    risk = _risk(contract, tmp_path, candidate_name="other-candidate")
+    cfg = tmp_path / "candidate.json"
+    cfg.write_text("{}", encoding="utf-8")
+    attestation = tmp_path / "attestation.json"
+    monkeypatch.setattr("semantic_atlas.product_cli.oracle_from_config", lambda path: FakeOracle("candidate"))
+
+    with pytest.raises(ValueError, match="different candidate oracle manifest"):
+        main(
+            [
+                "attest",
+                str(contract_path),
+                "--oracle",
+                str(cfg),
+                "--adequacy",
+                str(adequacy),
+                "--risk-certificate",
+                str(risk),
+                "--output",
+                str(attestation),
+                "--quiet",
+            ]
+        )
 
 
 def test_assess_adequacy_cli_returns_nonzero_for_missing_required_evidence(tmp_path):
