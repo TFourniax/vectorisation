@@ -31,7 +31,10 @@ from .otlp import load_otlp_jsonl
 from .policy_forge import forge_contract_with_policies
 from .product_config import oracle_from_config
 from .protocol_v1 import ScorePair, audit_contract_v1
-from .release_control import evaluate_production_release
+from .release_control import (
+    attestation_matches_certification_evidence,
+    evaluate_production_release,
+)
 from .review import ReviewBundle, apply_review_decisions, build_review_bundle, load_review_decisions_jsonl
 from .telemetry import join_feedback, load_feedback_jsonl
 
@@ -173,6 +176,41 @@ def _forge_otlp(args: argparse.Namespace) -> int:
     return _forge_common(args, evidence, extra_report={"telemetry": telemetry_report})
 
 
+def _contract_anchors(contract: SemanticContract) -> tuple[str, ...]:
+    values: list[str] = []
+    for clause in contract.clauses:
+        objects = tuple(clause.objects)
+        if objects:
+            values.append(str(objects[0]))
+        if isinstance(clause, MutualNeighborClause) and len(objects) > 1:
+            values.append(str(objects[1]))
+    return tuple(dict.fromkeys(values))
+
+
+def _contract_score_pairs(contract: SemanticContract) -> tuple[ScorePair, ...]:
+    pairs: list[ScorePair] = []
+    for clause in contract.clauses:
+        if clause.kind == "triplet":
+            pairs.append(ScorePair(str(clause.anchor), str(clause.positive)))
+            pairs.append(ScorePair(str(clause.anchor), str(clause.negative)))
+    return tuple(dict.fromkeys(pairs))
+
+
+def _conformance_for_contract(oracle, contract: SemanticContract, *, k: str, check_score_pairs: bool):
+    anchors = _contract_anchors(contract)
+    if not anchors:
+        raise ValueError("cannot run conformance for an empty contract without explicit anchors")
+    k_values = tuple(int(x) for x in k.split(",") if x.strip())
+    if not k_values:
+        raise ValueError("at least one conformance k value is required")
+    return check_oracle_conformance(
+        oracle,
+        anchors=anchors,
+        k_values=k_values,
+        score_pairs=_contract_score_pairs(contract) if check_score_pairs else (),
+    )
+
+
 def _check(args: argparse.Namespace) -> int:
     contract = SemanticContract.load(args.contract)
     baseline_oracle = oracle_from_config(args.baseline)
@@ -199,12 +237,33 @@ def _check(args: argparse.Namespace) -> int:
 
 def _release(args: argparse.Namespace) -> int:
     contract = SemanticContract.load(args.contract)
+    adequacy = load_adequacy_report(args.adequacy, contract_digest=contract.digest)
     attestation = SemanticProtocolAttestation.load(args.attestation)
     baseline_oracle = oracle_from_config(args.baseline)
     candidate_oracle = oracle_from_config(args.candidate)
     try:
+        risk_artifact = BoundRiskCertificate.load(
+            args.risk_certificate,
+            contract_digest=contract.digest,
+            oracle_manifest_digest=candidate_oracle.manifest.digest,
+        )
         baseline = audit_contract_v1(contract, baseline_oracle)
         candidate = audit_contract_v1(contract, candidate_oracle)
+        conformance = _conformance_for_contract(
+            candidate_oracle,
+            contract,
+            k=args.k,
+            check_score_pairs=args.check_score_pairs,
+        )
+        _, evidence_mismatches = attestation_matches_certification_evidence(
+            attestation,
+            conformance_digest=conformance.digest,
+            conformance_passed=conformance.passed,
+            adequacy_digest=adequacy.digest,
+            adequacy_status=adequacy.status,
+            risk_certificate_digest=risk_artifact.digest,
+            risk_certified=risk_artifact.certificate.certified,
+        )
         report = evaluate_production_release(
             contract,
             baseline,
@@ -212,6 +271,7 @@ def _release(args: argparse.Namespace) -> int:
             attestation=attestation,
             change_policy=_release_policy(args),
             require_certified_attestation=True,
+            certification_evidence_mismatches=evidence_mismatches,
         )
     finally:
         _close_oracle(baseline_oracle)
@@ -280,26 +340,6 @@ def _calibrate_risk(args: argparse.Namespace) -> int:
     return 0 if certificate.certified else 8
 
 
-def _contract_anchors(contract: SemanticContract) -> tuple[str, ...]:
-    values: list[str] = []
-    for clause in contract.clauses:
-        objects = tuple(clause.objects)
-        if objects:
-            values.append(str(objects[0]))
-        if isinstance(clause, MutualNeighborClause) and len(objects) > 1:
-            values.append(str(objects[1]))
-    return tuple(dict.fromkeys(values))
-
-
-def _contract_score_pairs(contract: SemanticContract) -> tuple[ScorePair, ...]:
-    pairs: list[ScorePair] = []
-    for clause in contract.clauses:
-        if clause.kind == "triplet":
-            pairs.append(ScorePair(str(clause.anchor), str(clause.positive)))
-            pairs.append(ScorePair(str(clause.anchor), str(clause.negative)))
-    return tuple(dict.fromkeys(pairs))
-
-
 def _attest(args: argparse.Namespace) -> int:
     contract = SemanticContract.load(args.contract)
     adequacy = load_adequacy_report(args.adequacy, contract_digest=contract.digest)
@@ -312,14 +352,11 @@ def _attest(args: argparse.Namespace) -> int:
         )
         risk = risk_artifact.certificate
         audit = audit_contract_v1(contract, oracle)
-        anchors = _contract_anchors(contract)
-        if not anchors:
-            raise ValueError("cannot attest an empty contract without conformance anchors")
-        conformance = check_oracle_conformance(
+        conformance = _conformance_for_contract(
             oracle,
-            anchors=anchors,
-            k_values=tuple(int(x) for x in args.k.split(",") if x.strip()),
-            score_pairs=_contract_score_pairs(contract) if args.check_score_pairs else (),
+            contract,
+            k=args.k,
+            check_score_pairs=args.check_score_pairs,
         )
         certifiable = bool(
             conformance.passed
@@ -394,15 +431,19 @@ def build_product_parser() -> argparse.ArgumentParser:
     _add_release_policy_args(check)
     check.set_defaults(func=_check)
 
-    release = sub.add_parser("release", help="strict production gate: semantic diff plus certified attestation")
+    release = sub.add_parser("release", help="strict production gate with recomputed certification evidence")
     release.add_argument("contract")
     release.add_argument("--baseline", required=True)
     release.add_argument("--candidate", required=True)
     release.add_argument("--attestation", required=True)
+    release.add_argument("--adequacy", required=True)
+    release.add_argument("--risk-certificate", required=True)
     release.add_argument("--output")
     release.add_argument("--markdown")
     release.add_argument("--summary-only", action="store_true")
     release.add_argument("--max-rows", type=int, default=20)
+    release.add_argument("--k", default="1,3,5")
+    release.add_argument("--check-score-pairs", action="store_true")
     _add_release_policy_args(release)
     release.set_defaults(func=_release)
 
