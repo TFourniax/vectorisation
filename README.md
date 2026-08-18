@@ -1,59 +1,124 @@
 # Semantic ABI
 
-**Backwards compatibility for AI meaning.**
+**A proof-carrying linker for replaceable AI infrastructure.**
 
-> APIs can remain valid while an AI application silently changes meaning. Semantic ABI makes the meaning/effect contract of an AI system executable, versioned and evidence-gated.
+> APIs tell us whether two components can communicate. Semantic ABI asks whether one component can replace another **without breaking the application meaning and effects that consumers depend on**.
 
-Semantic ABI began as topology-aware vector research, then became a portable contract above heterogeneous retrieval systems. **v0.6 takes the next step:** a representation-agnostic **Semantic Change Control Plane** for complete AI applications.
+Semantic ABI began as topology-aware vector research, then became a portable semantic contract above heterogeneous retrieval systems. The current experimental branch advances the idea into two layers:
 
-A model, prompt, corpus, embedding model, retriever, reranker, tool, schema, policy or code path can change internally. The release is allowed only when the application-specific semantic and externally observable effect contracts still hold with adequate evidence.
+1. **v0.6 Semantic Change Control** — executable, representation-agnostic compatibility contracts for model/prompt/data/retrieval/tool changes;
+2. **v0.7 Semantic Linker** — dependency resolution that only considers components carrying evidence for the exact application contract, and can require proof that selected components remain compatible when composed.
+
+The long-term category is **Semantic Dependency Management**: applications depend on semantic slots, not vendors; implementations compete to become proven-compatible substitutes.
 
 ```text
-                     AI RELEASE
-                         |
-                         v
-                  Change Manifest
-      model / prompt / data / retrieval / tools / code
-                         |
-           +-------------+-------------+
-           |                           |
-           v                           v
-    baseline system             candidate system
-           |                           |
-           v                           v
-       adapter                     adapter
-           |                           |
-           +-------> MeaningFrames <---+
-                         |
-                         v
-                 Semantic Contract
-                /                 \
-       cross-version           metamorphic
-         invariants             invariants
-                \                 /
-                 v               v
-              evidence + adequacy
-                         |
-                         v
-             Compatibility Report
-             patch / minor / major
-                         |
-               allow / canary / block
+                       APPLICATION
+                           |
+                           v
+                    Semantic Slots
+        model / retriever / reranker / tool / ...
+                           |
+                           v
+                   Semantic Contracts
+                           |
+              +------------+------------+
+              |                         |
+              v                         v
+        candidate catalog        change-control runs
+  cost/latency/region/caps       semantic + effect evidence
+              |                         |
+              |                         v
+              |               Compatibility Certificates
+              |                         |
+              +------------+------------+
+                           |
+                           v
+                    SEMANTIC LINKER
+         rejects uncertified / stale / wrong-env
+                           |
+                  composition evidence
+                           |
+                           v
+                 Proven Link Plan
+                           |
+             +-------------+-------------+
+             |             |             |
+          routing        failover     optimization
 ```
+
+## v0.7 — Semantic Linker
+
+A normal model router may choose a candidate because it is cheap, fast and scores well. Semantic ABI reverses the order:
+
+1. **prove admissibility first**;
+2. **optimize second**.
+
+A candidate is eligible only if it satisfies the slot constraints and carries a compatibility certificate for the exact:
+
+- logical baseline component;
+- Semantic ABI contract digest;
+- required evidence coverage;
+- deployment environment when pinned;
+- validity window;
+- trusted issuer when configured.
+
+Only then may cost/latency optimization consider it.
+
+### Composition is not assumed
+
+Two replacements can each be compatible in isolation and still fail together.
+
+The v0.7 resolver can therefore require a `CompositionCertificate` for the concrete selected set. A cheaper model + retriever pair is rejected if the application requires end-to-end evidence and that pair has not earned it.
+
+This is a deliberate scientific constraint: Semantic ABI does **not** assume compatibility is transitive or compositional unless evidence justifies reuse.
+
+### Proof chain
+
+`src/semantic_atlas/certificate_bridge.py` connects the layers. Only `compatible` or explicitly conditional change-control reports can be promoted into linker certificates. `breaking` and `insufficient_evidence` reports cannot become dependency proof.
+
+The current certificate is digest-bound and issuer-aware. Cryptographic signatures, trust roots, expiry/revocation infrastructure and KMS/PKI integration are next gates; this branch does not pretend a string issuer is already a secure signature system.
+
+### Minimal dependency model
+
+```python
+from semantic_atlas.linker import (
+    ComponentKind,
+    SemanticSlot,
+    LinkPolicy,
+    resolve_semantic_dependencies,
+)
+
+slot = SemanticSlot(
+    slot_id="reasoning-model",
+    kind=ComponentKind.MODEL,
+    baseline_component_id="model:frontier@stable",
+    contract_digest="contract:support-meaning@7",
+    required_capabilities=frozenset({"tool-use", "json"}),
+    allowed_regions=frozenset({"eu"}),
+    minimum_probe_coverage=1.0,
+)
+
+result = resolve_semantic_dependencies(
+    [slot],
+    offers,
+    certificates,
+    policy=LinkPolicy(
+        cost_weight=1.0,
+        latency_weight=0.001,
+        environment_digest="support-prod-eu-v7",
+    ),
+)
+```
+
+Runnable demo: [`examples/semantic_linker_demo.py`](examples/semantic_linker_demo.py)
+
+Full design: [`docs/SEMANTIC_LINKER.md`](docs/SEMANTIC_LINKER.md)
 
 ## v0.6 — Behavioral Compatibility Versioning
 
-Traditional SemVer describes intended API compatibility. Semantic ABI v0.6 introduces an executable compatibility class for AI behavior:
+The linker depends on the change-control engine rather than replacing it.
 
-- **patch** — required semantic/effect invariants survive and no soft rule regresses;
-- **minor** — hard invariants survive, but a declared soft regression occurs within the explicit error budget; rollout is canary-only;
-- **major** — a hard invariant breaks, the soft budget is exceeded, or required evidence is missing; rollout is blocked.
-
-The classification is derived from evidence, not from a prompt author deciding that a change "looks small".
-
-### Representation-agnostic `MeaningFrame`
-
-Adapters normalize application behavior into stable, application-owned surfaces:
+A model, prompt, corpus, embedding model, retriever, reranker, tool, schema, policy or code path can change internally. Adapters normalize observable application behavior into a representation-agnostic `MeaningFrame` containing surfaces such as:
 
 - canonical claim IDs;
 - entity IDs;
@@ -61,155 +126,82 @@ Adapters normalize application behavior into stable, application-owned surfaces:
 - citations;
 - tool capability IDs;
 - externally observable effects;
-- domain-specific numeric scores and labels;
+- domain-specific numeric scores/labels;
 - output-schema digest.
 
-The compatibility layer does **not** require baseline and candidate systems to share embeddings, coordinates, provider, model family or retrieval algebra.
+The engine supports two rule families.
 
 ### Cross-version invariants
 
-Compare the same probe on baseline and candidate.
+Compare the same probe on baseline and candidate, for example:
 
-Examples:
-
-- preserve 100% of required legal/business claims;
-- retain at least 90% of baseline evidence IDs;
-- keep the effect set exactly unchanged;
-- groundedness >= 0.93;
-- cost <= declared ceiling;
-- output schema remains identical.
+- preserve 100% of required business/legal claim IDs;
+- retain at least 90% of required evidence objects;
+- keep side effects exactly unchanged;
+- maintain a groundedness floor;
+- remain below a declared cost ceiling.
 
 ### Metamorphic invariants
 
-Compare semantically related probe variants inside the candidate, without requiring one exact target string.
+Compare semantically related executions without requiring one exact expected string, for example:
 
-Examples:
+- paraphrases preserve required claims;
+- irrelevant fact reordering preserves effect selection;
+- equivalent locale formatting preserves normalized business result;
+- adding non-conflicting context does not remove required claims.
 
-- paraphrase must preserve canonical claims;
-- irrelevant fact reordering must preserve tool/effect selection;
-- locale-format variants must preserve normalized business result;
-- adding non-conflicting context must not remove required claims.
+### Evidence-derived compatibility version
 
-This attacks the oracle problem directly: many important AI properties are relations among executions, not literal expected strings.
+The report emits an executable compatibility class:
 
-### Fail-closed evidence
+- **patch** — hard invariants preserved, no soft regression;
+- **minor** — hard invariants preserved, declared soft regression stays within budget; canary only;
+- **major** — hard break, soft budget exceeded, or evidence insufficient; block.
 
-Missing probes, failed executions or unavailable required surfaces are not silently averaged away. If required evidence is missing or probe coverage falls below the contract threshold, status becomes `insufficient_evidence` and rollout is blocked.
+This is not ordinary prompt SemVer. The classification is derived from an evidence run.
 
-### Change localization
-
-Rules can declare the component kinds they depend on. When a rule breaks, the report returns changed facets that are plausible suspects. This is impact localization, not a causal proof; controlled counterfactual replay is a future gate.
-
-## Minimal v0.6 usage
-
-```python
-from semantic_atlas.change_control import (
-    ChangeFacet,
-    ChangeKind,
-    ChangeSet,
-    Comparator,
-    CompatibilityContract,
-    CompatibilityRule,
-    MeaningFrame,
-    ProbeObservation,
-    SystemRun,
-    evaluate_change,
-)
-
-contract = CompatibilityContract(
-    name="support-agent",
-    version="1.0",
-    rules=(
-        CompatibilityRule(
-            rule_id="required-claims",
-            target="claims",
-            comparator=Comparator.BASELINE_RECALL,
-            threshold=1.0,
-            depends_on=(ChangeKind.MODEL, ChangeKind.RETRIEVER),
-        ),
-    ),
-)
-
-baseline = SystemRun(
-    "prod@1",
-    "manifest-old",
-    (
-        ProbeObservation(
-            "refund",
-            "refund-policy",
-            "canonical",
-            MeaningFrame(claims=frozenset({"refund:30-days"})),
-        ),
-    ),
-)
-
-candidate = SystemRun(
-    "candidate@2",
-    "manifest-new",
-    (
-        ProbeObservation(
-            "refund",
-            "refund-policy",
-            "canonical",
-            MeaningFrame(claims=frozenset({"refund:30-days", "refund:original-method"})),
-        ),
-    ),
-)
-
-changes = ChangeSet(
-    baseline_system="prod@1",
-    candidate_system="candidate@2",
-    facets=(ChangeFacet(ChangeKind.MODEL, "provider-model"),),
-)
-
-report = evaluate_change(contract, changes, baseline, candidate)
-print(report.status, report.semantic_version_bump, report.rollout)
-```
-
-Runnable example: [`examples/change_control_demo.py`](examples/change_control_demo.py)
+Runnable demo: [`examples/change_control_demo.py`](examples/change_control_demo.py)
 
 Full design: [`docs/SEMANTIC_CHANGE_CONTROL_PLANE.md`](docs/SEMANTIC_CHANGE_CONTROL_PLANE.md)
 
-Venture thesis and falsification gates: [`docs/VENTURE_THESIS_CHANGE_CONTROL.md`](docs/VENTURE_THESIS_CHANGE_CONTROL.md)
+## The product thesis
 
-## The first commercial wedge: migration insurance
+The first commercial wedge remains **migration insurance**:
 
-The initial product should answer one concrete question:
+> **We are changing an AI component. What important behavior will break, and which substitutes are actually safe for this application?**
 
-> **We are changing an AI component. What important behavior will break if we ship?**
+After enough certificates exist, the product can move from migration testing to continuous dependency resolution:
 
-Target migrations include:
+> **Reduce inference cost by 40%, keep p95 under 700 ms, process only in the EU, and preserve contract `payments@12`.**
 
-- one model/provider to another;
-- frontier model to cheaper/smaller model;
-- cloud to on-prem/sovereign model;
-- embedding-model changes;
-- BM25/dense/hybrid/late-interaction retrieval changes;
-- vector database or reranker changes;
-- corpus refresh/re-chunking;
-- prompt rewrites;
-- MCP/tool/schema upgrades;
-- agent orchestration changes.
+The system searches candidate implementations, obtains or reuses adequate compatibility evidence, and emits a new link plan. A router can then choose dynamically only inside the certified set.
 
-The long-term product is not merely a test dashboard. It is a signed **Semantic Compatibility Certificate** consumed by CI/CD, deployment systems, enterprise policy and eventually procurement/audit workflows.
+This is the strategic difference between the end-state and a generic eval dashboard, agent release gate or LLM gateway.
 
-## Why this is not another eval platform
+Commercial/falsification thesis: [`docs/VENTURE_THESIS_CHANGE_CONTROL.md`](docs/VENTURE_THESIS_CHANGE_CONTROL.md)
 
-Evals, traces and observability remain necessary. Semantic ABI is designed to consume their evidence.
+## Why this is not just an eval platform or router
 
-The intended boundary is different:
+Evals, traces, observability, gateways and optimizers are evidence/input providers.
 
-- eval platforms answer **how did this experiment score?**;
-- observability answers **what happened in production?**;
-- Semantic ABI aims to answer **is this candidate backwards-compatible with the application contract that production depends on?**
+Their questions are typically:
 
-OpenTelemetry/OpenInference, Braintrust, LangSmith, Arize/Phoenix, Galileo, Bedrock evaluation, MCP and existing vector/search systems are potential evidence providers or integration surfaces rather than things Semantic ABI must replace.
+- **Eval:** how did this candidate score?
+- **Observability:** what happened in production?
+- **Router:** which model should serve this request?
+- **Optimizer:** which configuration maximizes an objective?
 
-## Existing v0.5 retrieval proof still matters
+Semantic ABI's intended question is different:
 
-The v0.6 product direction is built on a concrete interoperability result from v0.5.
+> **Which implementation graph is admissible as a backwards-compatible dependency of this application?**
 
-A public SciFact benchmark used real `lightonai/colbertv2.0` multi-vector representations through PyLate/Voyager + MaxSim:
+Optimization happens only after the compatibility boundary.
+
+## Existing v0.5 interoperability evidence
+
+The v0.7 thesis is not starting from a blank page.
+
+A public SciFact experiment used real `lightonai/colbertv2.0` multi-vector representations through PyLate/Voyager + MaxSim:
 
 - 1,800 documents;
 - 300 train queries to author the contract;
@@ -224,11 +216,11 @@ A public SciFact benchmark used real `lightonai/colbertv2.0` multi-vector repres
 
 ColBERT passed all hard clauses and **660/660 Protocol-v1 conformance checks with zero issues**.
 
-This does not prove universal superiority over ordinary IR metrics. It demonstrates that one application-level semantic contract can survive a materially different retrieval algebra without common coordinates or contract translation.
+The promoted claim is narrow: one application-level semantic contract survived a materially different retrieval algebra without common coordinates or contract translation. It does not prove that Semantic ABI replaces nDCG, that ColBERT is universally superior, or that compatibility automatically composes.
 
-## Protocol-v1 retrieval layer
+## Protocol-v1 retrieval ABI
 
-The existing retrieval ABI remains part of the stack:
+The existing retrieval protocol remains a concrete backend interoperability layer:
 
 ```text
 SemanticContract
@@ -238,10 +230,10 @@ Protocol-v1 compiler
      |
 ContractExecutionPlan
      |
-     +--> dense vector retriever
-     +--> sparse BM25
+     +--> dense
+     +--> BM25 / sparse
      +--> hybrid
-     +--> ColBERT / MaxSim late interaction
+     +--> ColBERT / MaxSim
      +--> graph / provider adapter
      +--> remote HTTP service
      |
@@ -249,18 +241,8 @@ ContractExecutionPlan
 Conformity + Adequacy + Risk + Integrity
      |
      v
-Protocol Attestation / rollout / fallback / repair
+Attestation / rollout / fallback / repair
 ```
-
-Protocol v1 uses three directional/batchable primitives:
-
-```text
-contains_many(ids)
-score_many((anchor, candidate) ...)
-neighbors_many((anchor, k) ...)
-```
-
-It includes compiler deduplication, remote transport, OpenAPI, conformance, state-bound incremental execution, tamper-evident attestation and a language-neutral TCK.
 
 Protocol: [`docs/SEMANTIC_ABI_PROTOCOL_V1.md`](docs/SEMANTIC_ABI_PROTOCOL_V1.md)
 
@@ -270,28 +252,29 @@ OpenAPI: [`spec/semantic-abi-oracle-v1.openapi.yaml`](spec/semantic-abi-oracle-v
 
 A candidate can satisfy every clause that exists while the contract still misses important downstream damage.
 
-Semantic ABI therefore keeps separate:
+The project therefore keeps separate:
 
-- **Conformity** — candidate vs declared clauses;
-- **Adequacy** — is the contract/test surface sufficient for the release claim?;
-- **Implementation integrity** — is a concrete backend/index silently damaged?;
-- **Risk certification** — where may a candidate safely serve?;
-- **Attestation** — what exact contract/system/evidence produced the decision?
+- **conformity** — candidate vs declared clauses;
+- **adequacy** — is the observed/tested surface sufficient for the release claim?;
+- **implementation integrity** — is one backend/index silently damaged?;
+- **risk certification** — where may a candidate safely serve?;
+- **attestation** — what exact contract/system/evidence produced the decision?;
+- **dependency compatibility** — may a component or composition enter the linkable set?
 
-Missing required adequacy evidence remains `insufficient_evidence`.
+Missing required evidence fails closed.
 
-## Important negative results retained
+## Negative results remain first-class
 
-The repo deliberately preserves results that killed attractive ideas:
+The repository deliberately preserves findings that killed attractive ideas:
 
 - local BGE→MiniLM SCF mapping loses to global;
 - fixed Semantic Witness does not robustly dominate random subsets;
-- learned fixed Diagnostic Panel overfits and produces 0% held-out regression recall;
-- Semantic ABI is not a generally better aggregate nDCG predictor than ordinary validation;
-- current repair does not reach 90% downstream recovery;
+- learned fixed Diagnostic Panel overfits and gets 0% held-out regression recall;
+- aggregate Semantic ABI score is not generally a better nDCG predictor than ordinary validation;
+- current repair does not reach the preregistered 90% downstream-recovery target;
 - fixed-prior repair attribution does not generalize.
 
-Negative evidence removes unjustified complexity and is part of the product discipline.
+The project is intentionally evidence-gated rather than novelty-by-assertion.
 
 ## Validation
 
@@ -302,34 +285,40 @@ python benchmarks/hubness_benchmark.py
 python tools/check_evidence_freshness.py
 ```
 
-v0.6 adds focused unit coverage for:
+The new branch adds focused coverage for:
 
-- safe model swap under preserved meaning;
-- hard claim loss;
+- model swap under preserved meaning;
+- hard semantic claim loss;
 - metamorphic/paraphrase instability;
-- missing-probe fail-closed behavior;
+- missing-evidence fail-closed behavior;
 - soft-regression canary decisions;
 - numeric quality/cost constraints;
-- deterministic evidence digests.
+- deterministic evidence digests;
+- uncertified dependency rejection;
+- certificate expiry/resource constraints;
+- conditional-evidence penalty;
+- mandatory joint composition evidence;
+- blocking promotion of breaking change reports into linker certificates.
 
 ## Highest-value next gates
 
-1. two real model-provider adapters and two production retrieval adapters under the change-control API;
-2. signed Semantic Compatibility Certificate bound into existing attestation machinery;
-3. GitHub Action that blocks/canaries/allows a candidate release;
-4. trace-to-contract **Contract Forge** with human approval of normative requirements;
-5. independently confirmed model/prompt/corpus/tool migrations where ABI catches regressions ordinary aggregate evals miss;
-6. false-block measurement on accepted releases;
-7. controlled counterfactual replay for stronger root-cause localization;
-8. external Rust/Go/TypeScript implementation of the compatibility/TCK surface;
-9. professional novelty/IP review before patent claims.
+1. **real providers:** model-provider + retrieval-provider adapters under the same change-control surface;
+2. **cryptographic trust:** Ed25519/KMS signing, revocation, validity and verifier tooling;
+3. **composition science:** quantify when certificates can be safely reused vs when full joint recertification is mandatory;
+4. **registry:** private compatibility graph and content-addressed certificate store;
+5. **resolver scale:** branch-and-bound / SAT/SMT / incremental re-resolution instead of Cartesian enumeration;
+6. **CI product:** `semantic-abi link` plus GitHub Action and machine-readable deploy gate;
+7. **Contract Forge:** propose high-value invariants from traces/incidents while keeping human approval of normative truth;
+8. **economic proof:** demonstrate migration/spend savings net of certification cost;
+9. **external TCK:** independent Rust/Go/TypeScript compatibility implementation;
+10. **professional novelty/IP review** before patent claims.
 
 ## Scientific posture
 
-This remains a falsifiable research and product program, not a claim that Semantic ABI is already an industry standard, production-ready, legally patent-novel, or guaranteed to become a large company.
+This repository does **not** claim that contracts, regression testing, metamorphic testing, proof-carrying systems, routing, optimization, semantic versioning or certificates were invented here.
 
-The v0.6 hypothesis is now:
+The v0.7 research hypothesis is narrower:
 
-> **Can one stable, executable semantic/effect contract become the backwards-compatibility boundary for replaceable AI systems, and can the resulting compatibility certificate create enough operational value to become standard release infrastructure?**
+> **Can application-owned semantic contracts turn probabilistic AI implementations into evidence-bound, resolvable dependencies, such that a system can safely relink models, retrievers and tools without coupling business meaning to a vendor implementation?**
 
-The existing BM25→ColBERT result says the idea can already cross a materially different retrieval implementation. v0.6 tests whether the same principle can expand to the full AI change surface.
+If the answer is yes at acceptable certification cost and false-admission rate, Semantic ABI can become a compatibility standard and control plane rather than another testing product. If not, the linker thesis should be narrowed or killed.
