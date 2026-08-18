@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-"""Small zero-dependency CLI for Semantic ABI Protocol v1."""
+"""Zero-dependency CLI for Semantic ABI protocols and semantic linking."""
 
 import argparse
 import json
@@ -11,6 +11,7 @@ import sys
 from .acquisition import AcquisitionPolicy, forge_contract, load_evidence_jsonl, save_review_queue
 from .conformance import check_oracle_conformance
 from .contracts import SemanticContract
+from .link_io import link_result_to_dict, resolve_link_payload
 from .protocol_v1 import audit_contract_v1, compile_contract
 from .remote_v1 import RemoteSemanticOracleV1
 from .telemetry import join_feedback, load_feedback_jsonl, load_openinference_jsonl
@@ -31,6 +32,13 @@ def _plan(args: argparse.Namespace) -> int:
     plan = compile_contract(contract)
     _write({**plan.to_dict(), "plan_digest": plan.digest}, args.output)
     return 0
+
+
+def _link(args: argparse.Namespace) -> int:
+    payload = json.loads(Path(args.request).read_text(encoding="utf-8"))
+    result = resolve_link_payload(payload)
+    _write(link_result_to_dict(result), args.output)
+    return 0 if result.plan is not None else 4
 
 
 def _policy_from_args(args: argparse.Namespace) -> AcquisitionPolicy:
@@ -149,13 +157,24 @@ def _add_forge_policy_args(parser: argparse.ArgumentParser) -> None:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="semantic-abi", description="Semantic ABI Protocol v1 tooling")
+    parser = argparse.ArgumentParser(
+        prog="semantic-abi",
+        description="Semantic ABI protocol, change-control and dependency-linking tooling",
+    )
     sub = parser.add_subparsers(dest="command", required=True)
 
     plan = sub.add_parser("plan", help="compile a Semantic Contract into a canonical batch execution plan")
     plan.add_argument("contract")
     plan.add_argument("--output")
     plan.set_defaults(func=_plan)
+
+    link = sub.add_parser(
+        "link",
+        help="resolve the best proven-compatible AI dependency graph from a JSON request",
+    )
+    link.add_argument("request", help="JSON file containing slots, offers, certificates and policy")
+    link.add_argument("--output", help="optional JSON output path")
+    link.set_defaults(func=_link)
 
     forge = sub.add_parser("forge", help="infer a reviewable Semantic Contract from JSONL evidence")
     forge.add_argument("evidence", help="JSONL preferences, relevant sets, policies and/or production traces")
