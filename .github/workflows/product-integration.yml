@@ -53,3 +53,28 @@ jobs:
       - run: pip install -e '.[dev,postgres]'
       - name: Audit a real ephemeral pgvector table
         run: python integration/pgvector_live.py
+
+  opensearch-live:
+    runs-on: ubuntu-latest
+    env:
+      OPENSEARCH_INITIAL_ADMIN_PASSWORD: "SemanticAbi-Integration-2026!"
+    services:
+      opensearch:
+        image: opensearchproject/opensearch:3.7.0
+        env:
+          discovery.type: single-node
+          OPENSEARCH_INITIAL_ADMIN_PASSWORD: "SemanticAbi-Integration-2026!"
+          OPENSEARCH_JAVA_OPTS: "-Xms512m -Xmx512m"
+        ports:
+          - 9200:9200
+          - 9600:9600
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install --upgrade pip
+      - run: pip install -e '.[dev]'
+      - name: Audit a real ephemeral OpenSearch index over authenticated TLS
+        run: python integration/opensearch_live.py
