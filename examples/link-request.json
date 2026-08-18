@@ -1,0 +1,55 @@
+{
+  "slots": [
+    {
+      "slot_id": "reasoning-model",
+      "kind": "model",
+      "baseline_component_id": "model:frontier@stable",
+      "contract_digest": "contract:support-meaning@7",
+      "required_capabilities": ["tool-use", "json"],
+      "allowed_regions": ["eu"],
+      "minimum_probe_coverage": 1.0
+    }
+  ],
+  "offers": [
+    {
+      "component_id": "model:cheap-uncertified@1",
+      "kind": "model",
+      "version": "1",
+      "provider": "provider-a",
+      "unit_cost": 0.08,
+      "p95_latency_ms": 180,
+      "capabilities": ["tool-use", "json"],
+      "regions": ["eu"]
+    },
+    {
+      "component_id": "model:proven@3",
+      "kind": "model",
+      "version": "3",
+      "provider": "provider-b",
+      "unit_cost": 0.15,
+      "p95_latency_ms": 210,
+      "capabilities": ["tool-use", "json"],
+      "regions": ["eu"]
+    }
+  ],
+  "certificates": [
+    {
+      "baseline_component_id": "model:frontier@stable",
+      "candidate_component_id": "model:proven@3",
+      "contract_digest": "contract:support-meaning@7",
+      "evidence_digest": "evidence:proven-3",
+      "verdict": "compatible",
+      "probe_coverage": 1.0,
+      "issuer": "semantic-abi-ci",
+      "issued_at": "2026-08-18T07:00:00+00:00",
+      "expires_at": "2027-08-18T07:00:00+00:00",
+      "environment_digest": "support-prod-eu-v7"
+    }
+  ],
+  "policy": {
+    "cost_weight": 1.0,
+    "latency_weight": 0.001,
+    "trusted_issuers": ["semantic-abi-ci"],
+    "environment_digest": "support-prod-eu-v7"
+  }
+}

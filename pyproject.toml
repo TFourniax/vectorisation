@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "semantic-manifold-atlas"
-version = "0.5.0"
-description = "Semantic ABI protocol and evidence-gated semantic change-control research engine"
+version = "0.7.0"
+description = "Semantic ABI: proof-carrying semantic compatibility, change control, and AI dependency linking"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = ["numpy>=1.24"]
