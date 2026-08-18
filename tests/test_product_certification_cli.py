@@ -142,6 +142,10 @@ def test_attest_then_release_forms_closed_certified_cli_chain(tmp_path, monkeypa
             str(candidate_cfg),
             "--attestation",
             str(attestation),
+            "--adequacy",
+            str(adequacy),
+            "--risk-certificate",
+            str(risk),
             "--output",
             str(release_report),
             "--markdown",
@@ -153,6 +157,7 @@ def test_attest_then_release_forms_closed_certified_cli_chain(tmp_path, monkeypa
     payload = json.loads(release_report.read_text(encoding="utf-8"))
     assert payload["deployment_eligible"] is True
     assert payload["attestation"]["bound_to_candidate"] is True
+    assert payload["attestation"]["certification_evidence_bound"] is True
     assert "production release — PASS" in release_md.read_text(encoding="utf-8")
 
 
