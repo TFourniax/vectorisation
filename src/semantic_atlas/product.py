@@ -13,9 +13,12 @@ from .acquisition import (
 )
 from .attestation_v1 import SemanticProtocolAttestation, make_protocol_attestation
 from .certification_io import (
+    BoundRiskCertificate,
     assess_adequacy_spec,
     calibrate_risk_from_jsonl,
+    calibration_events_digest,
     load_adequacy_report,
+    load_calibration_events_jsonl,
     load_risk_certificate,
     risk_certificate_digest,
     save_adequacy_report,
@@ -57,6 +60,7 @@ from .qdrant_provider import PortableQdrantOracleV1
 from .release_control import (
     ProductionReleaseReport,
     attestation_matches_audit,
+    attestation_matches_certification_evidence,
     evaluate_production_release,
 )
 from .review import (
@@ -128,10 +132,14 @@ __all__ = [
     "save_adequacy_report",
     "load_adequacy_report",
     "calibrate_risk_from_jsonl",
+    "load_calibration_events_jsonl",
+    "calibration_events_digest",
     "save_risk_certificate",
     "load_risk_certificate",
     "risk_certificate_digest",
+    "BoundRiskCertificate",
     "ProductionReleaseReport",
     "attestation_matches_audit",
+    "attestation_matches_certification_evidence",
     "evaluate_production_release",
 ]
