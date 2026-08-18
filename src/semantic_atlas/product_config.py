@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any, Mapping
 from urllib import parse as urllib_parse
 
+from .pgvector_provider import PgVectorOracleV1
 from .providers import OpenSearchOracleV1, QdrantOracleV1, load_query_catalog
 from .remote_v1 import RemoteSemanticOracleV1
 
@@ -67,14 +68,32 @@ def _catalog(spec: Mapping[str, Any], base_dir: Path) -> dict[str, Any]:
 def oracle_from_config(path: str | Path):
     """Instantiate a Protocol-v1 oracle from a JSON provider configuration.
 
-    Supported kinds: ``remote``, ``qdrant`` and ``opensearch``. Secrets are referenced
-    by environment-variable name rather than stored in the configuration file.
+    Supported kinds: ``remote``, ``qdrant``, ``opensearch`` and ``pgvector``. Secrets
+    are referenced by environment-variable name rather than stored in the config file.
     """
 
     spec, base_dir = load_oracle_spec(path)
     kind = str(spec.get("kind", "")).lower()
-    require_https = bool(spec.get("require_https", True))
     timeout = float(spec.get("timeout", 15.0))
+
+    if kind == "pgvector":
+        dsn_env = spec.get("dsn_env")
+        if not dsn_env:
+            raise ValueError("pgvector configuration requires dsn_env")
+        return PgVectorOracleV1.psycopg(
+            _required_env(str(dsn_env)),
+            table=str(spec["table"]),
+            id_column=str(spec.get("id_column", "id")),
+            vector_column=str(spec.get("vector_column", "embedding")),
+            query_catalog=_catalog(spec, base_dir),
+            metric=str(spec.get("metric", "cosine")),
+            implementation_id=None if spec.get("implementation_id") is None else str(spec["implementation_id"]),
+            deterministic=bool(spec.get("deterministic", True)),
+            state_digest=None if spec.get("state_digest") is None else str(spec["state_digest"]),
+            connect_timeout=max(1, int(timeout)),
+        )
+
+    require_https = bool(spec.get("require_https", True))
     url = str(spec.get("url", ""))
     _validate_endpoint(url, require_https=require_https)
 
