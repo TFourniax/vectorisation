@@ -14,7 +14,15 @@ from .providers import ProviderHttpTransport, QdrantOracleV1, _id_text, _point_i
 
 
 class PortableQdrantOracleV1(QdrantOracleV1):
-    def __init__(self, *, object_id_map: Mapping[str, Any] | None = None, **kwargs) -> None:
+    def __init__(
+        self,
+        *,
+        object_id_map: Mapping[str, Any] | None = None,
+        score_directionality: str = "unknown",
+        **kwargs,
+    ) -> None:
+        if score_directionality not in {"symmetric", "asymmetric", "unknown"}:
+            raise ValueError("invalid Qdrant score_directionality")
         self.object_id_map = {str(key): value for key, value in dict(object_id_map or {}).items()}
         reverse: dict[str, str] = {}
         for logical, native in self.object_id_map.items():
@@ -26,12 +34,11 @@ class PortableQdrantOracleV1(QdrantOracleV1):
         super().__init__(**kwargs)
         metadata = dict(self.manifest.metadata)
         metadata["object_id_mappings"] = len(self.object_id_map)
-        # OracleManifest is frozen, so rebuild it with the enriched metadata.
         self.manifest = type(self.manifest)(
             implementation_id=self.manifest.implementation_id,
             implementation_kind=self.manifest.implementation_kind,
             score_semantics=self.manifest.score_semantics,
-            score_directionality=self.manifest.score_directionality,
+            score_directionality=score_directionality,
             deterministic=self.manifest.deterministic,
             capabilities=self.manifest.capabilities,
             metadata=metadata,
@@ -52,6 +59,7 @@ class PortableQdrantOracleV1(QdrantOracleV1):
         implementation_id: str | None = None,
         deterministic: bool = False,
         state_digest: str | None = None,
+        score_directionality: str = "unknown",
     ) -> "PortableQdrantOracleV1":
         headers = {} if api_key is None else {"api-key": str(api_key)}
         http = ProviderHttpTransport(
@@ -69,6 +77,7 @@ class PortableQdrantOracleV1(QdrantOracleV1):
             implementation_id=implementation_id,
             deterministic=deterministic,
             state_digest=state_digest,
+            score_directionality=score_directionality,
         )
 
     def _backend_id(self, logical_id: str):
