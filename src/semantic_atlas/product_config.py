@@ -93,7 +93,7 @@ def oracle_from_config(path: str | Path):
             query_catalog=_catalog(spec, base_dir),
             metric=str(spec.get("metric", "cosine")),
             implementation_id=None if spec.get("implementation_id") is None else str(spec["implementation_id"]),
-            deterministic=bool(spec.get("deterministic", True)),
+            deterministic=bool(spec.get("deterministic", False)),
             state_digest=None if spec.get("state_digest") is None else str(spec["state_digest"]),
             connect_timeout=max(1, int(timeout)),
         )
