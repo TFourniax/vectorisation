@@ -2,7 +2,7 @@ from __future__ import annotations
 
 """Backend-independent semantic release diffs and deployment gates.
 
-This is the product-level equivalent of ``git diff`` for a Semantic Contract.  It
+This is the product-level equivalent of ``git diff`` for a Semantic Contract. It
 compares two Protocol-v1 audit results clause by clause and never assumes that the two
 implementations share coordinates, a distance metric, or even the same retrieval
 algebra.
@@ -36,7 +36,10 @@ class ClauseDelta:
 
     @property
     def is_regression(self) -> bool:
-        return self.status in {"regressed", "new_missing"}
+        # A clause that already failed but becomes worse is still semantic regression.
+        # Treating only PASS->FAIL as regression would let improvements elsewhere hide
+        # worsening pre-existing debt behind an aggregate score.
+        return self.status in {"regressed", "degraded", "new_missing"}
 
     @property
     def is_hard_regression(self) -> bool:
@@ -63,10 +66,10 @@ class ClauseDelta:
 class ReleasePolicy:
     """Declared semantic deployment policy.
 
-    Defaults are intentionally conservative: no newly missing clauses, no newly failing
-    clauses, and no hard-clause failure in the candidate.  ``max_score_drop`` allows a
-    caller to tolerate a small aggregate soft-score movement while still blocking every
-    newly failing clause.
+    Defaults are intentionally conservative: no newly missing clauses, no worsening
+    clauses, and no hard-clause failure in the candidate. ``max_score_drop`` allows a
+    caller to tolerate a small aggregate soft-score movement but does not by itself
+    waive clause-level regressions.
     """
 
     min_candidate_score: float = 0.0
@@ -262,7 +265,7 @@ def compare_protocol_audits(
     blockers: list[str] = []
 
     if hard_regressions:
-        blockers.append(f"{len(hard_regressions)} new hard-clause regression(s)")
+        blockers.append(f"{len(hard_regressions)} hard-clause regression(s)")
     if policy.require_no_new_missing and new_missing:
         blockers.append(f"{len(new_missing)} newly missing clause(s)")
     if len(soft_regressions) > int(policy.allow_soft_regressions):
