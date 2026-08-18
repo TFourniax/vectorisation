@@ -8,7 +8,7 @@ risk certification and the exact candidate execution state.
 """
 
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Sequence
 
 from .attestation_v1 import SemanticProtocolAttestation
 from .change_control import ReleasePolicy, SemanticChangeReport, compare_protocol_audits
@@ -21,6 +21,7 @@ class ProductionReleaseReport:
     change: SemanticChangeReport
     attestation_digest: str | None
     attestation_bound: bool
+    certification_evidence_bound: bool
     attestation_deployment_eligible: bool
     deployment_eligible: bool
     blockers: tuple[str, ...]
@@ -34,6 +35,7 @@ class ProductionReleaseReport:
             "attestation": {
                 "digest": self.attestation_digest,
                 "bound_to_candidate": self.attestation_bound,
+                "certification_evidence_bound": self.certification_evidence_bound,
                 "deployment_eligible": self.attestation_deployment_eligible,
             },
             "change": self.change.to_dict(include_clauses=include_clauses),
@@ -45,7 +47,8 @@ class ProductionReleaseReport:
             f"# Semantic ABI production release — {verdict}",
             "",
             f"- Change-control gate: {'PASS' if self.change.deployment_eligible else 'BLOCK'}",
-            f"- Attestation bound: {'yes' if self.attestation_bound else 'no'}",
+            f"- Attestation bound to candidate: {'yes' if self.attestation_bound else 'no'}",
+            f"- Certification evidence rebound: {'yes' if self.certification_evidence_bound else 'no'}",
             f"- Certified attestation: {'PASS' if self.attestation_deployment_eligible else 'BLOCK'}",
         ]
         if self.blockers:
@@ -74,6 +77,35 @@ def attestation_matches_audit(attestation: SemanticProtocolAttestation, candidat
     return not mismatches, tuple(mismatches)
 
 
+def attestation_matches_certification_evidence(
+    attestation: SemanticProtocolAttestation,
+    *,
+    conformance_digest: str,
+    conformance_passed: bool,
+    adequacy_digest: str,
+    adequacy_status: str,
+    risk_certificate_digest: str,
+    risk_certified: bool,
+) -> tuple[bool, tuple[str, ...]]:
+    """Verify that an attestation references independently recomputed evidence."""
+
+    mismatches: list[str] = []
+    expected = {
+        "conformance_digest": str(conformance_digest),
+        "adequacy_digest": str(adequacy_digest),
+        "adequacy_status": str(adequacy_status),
+        "risk_certificate_digest": str(risk_certificate_digest),
+    }
+    for field, value in expected.items():
+        if str(getattr(attestation, field)) != value:
+            mismatches.append(f"attestation {field} does not match recomputed certification evidence")
+    if bool(attestation.conformance_passed) != bool(conformance_passed):
+        mismatches.append("attestation conformance_passed does not match recomputed certification evidence")
+    if bool(attestation.risk_certified) != bool(risk_certified):
+        mismatches.append("attestation risk_certified does not match recomputed certification evidence")
+    return not mismatches, tuple(mismatches)
+
+
 def evaluate_production_release(
     contract: SemanticContract,
     baseline: ProtocolAuditResult,
@@ -82,28 +114,33 @@ def evaluate_production_release(
     attestation: SemanticProtocolAttestation | None,
     change_policy: ReleasePolicy | None = None,
     require_certified_attestation: bool = True,
+    certification_evidence_mismatches: Sequence[str] = (),
 ) -> ProductionReleaseReport:
     change = compare_protocol_audits(contract, baseline, candidate, policy=change_policy)
     blockers = list(change.blockers)
     bound = False
+    evidence_bound = not certification_evidence_mismatches
     attestation_eligible = False
     attestation_digest: str | None = None
 
     if attestation is None:
+        evidence_bound = False
         if require_certified_attestation:
             blockers.append("candidate has no certified Semantic Protocol Attestation")
     else:
         attestation_digest = attestation.digest
         bound, mismatches = attestation_matches_audit(attestation, candidate)
         blockers.extend(mismatches)
-        attestation_eligible = bool(bound and attestation.deployment_eligible)
+        blockers.extend(str(value) for value in certification_evidence_mismatches)
+        attestation_eligible = bool(bound and evidence_bound and attestation.deployment_eligible)
         if require_certified_attestation and not attestation_eligible:
-            blockers.append("candidate attestation is not deployment-eligible")
+            blockers.append("candidate attestation is not deployment-eligible with recomputed certification evidence")
 
     return ProductionReleaseReport(
         change=change,
         attestation_digest=attestation_digest,
         attestation_bound=bound,
+        certification_evidence_bound=evidence_bound,
         attestation_deployment_eligible=attestation_eligible,
         deployment_eligible=bool(change.deployment_eligible and (attestation_eligible or not require_certified_attestation)),
         blockers=tuple(dict.fromkeys(blockers)),
